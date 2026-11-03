@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sampleRate": 48000,
+  "layers": [
+    {
+      "id": "bed",
+      "file": "ta-full.m4a",
+      "gain": 0.34,
+      "startAt": 0.5,
+      "loopStart": 29.8928125,
+      "loopEnd": 88.4678125,
+      "loopSamples": 2811600,
+      "padSamples": 24000,
+      "introSamples": 1410855,
+      "decoderOffsetSamples": 0,
+      "master": "audio-src/masters/ta-full.wav",
+      "codec": "aac",
+      "bitrate": "160k",
+      "stitch": "intro 0..29.393 s plays once; loop clip 29.393..87.968 s (L 58.575 s = 82 beats @84); seam cut 87.5 s -> 28.925 s, equal-power crossfade 87.232..87.768 s; audio-src/stitch/stitch-full.py"
+    }
+  ]
+}

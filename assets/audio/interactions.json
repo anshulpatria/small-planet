@@ -1,0 +1,1032 @@
+{
+ "version": 2,
+ "file": "interactions.m4a",
+ "sampleRate": 24000,
+ "channels": 1,
+ "decoderOffsetSamples": 0,
+ "key": "F",
+ "music": {
+  "source": "audio-src/masters/ta-full.wav",
+  "loopSeconds": 58.575,
+  "introSeconds": 29.3928,
+  "bpm": 112.02,
+  "beatPhase": 0.2567,
+  "slip": {
+   "at": 40.227,
+   "shift": -0.168
+  },
+  "chords": [
+   {
+    "t": -29.393,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": -29.202,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": -28.131,
+    "root": "C",
+    "pcs": [
+     "C",
+     "E",
+     "G"
+    ],
+    "key": "C"
+   },
+   {
+    "t": -27.06,
+    "root": "Bb",
+    "pcs": [
+     "Bb",
+     "D",
+     "F"
+    ],
+    "key": "Bb"
+   },
+   {
+    "t": -24.917,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": -22.775,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": -21.704,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": -19.561,
+    "root": "C",
+    "pcs": [
+     "C",
+     "E",
+     "G"
+    ],
+    "key": "C"
+   },
+   {
+    "t": -18.49,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": -17.419,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": -15.276,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": -13.134,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": -10.991,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": -8.849,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": -6.706,
+    "root": "C",
+    "pcs": [
+     "C",
+     "E",
+     "G"
+    ],
+    "key": "C"
+   },
+   {
+    "t": -4.564,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": -3.493,
+    "root": "Bb",
+    "pcs": [
+     "Bb",
+     "D",
+     "F"
+    ],
+    "key": "Bb"
+   },
+   {
+    "t": -2.421,
+    "root": "C",
+    "pcs": [
+     "C",
+     "E",
+     "G"
+    ],
+    "key": "C"
+   },
+   {
+    "t": -0.279,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 0.0,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 2.935,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": 4.006,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 6.149,
+    "root": "C",
+    "pcs": [
+     "C",
+     "E",
+     "G"
+    ],
+    "key": "C"
+   },
+   {
+    "t": 7.22,
+    "root": "Bb",
+    "pcs": [
+     "Bb",
+     "D",
+     "F"
+    ],
+    "key": "Bb"
+   },
+   {
+    "t": 9.362,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 10.433,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": 11.505,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 14.718,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": 16.861,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 19.003,
+    "root": "Bb",
+    "pcs": [
+     "Bb",
+     "D",
+     "F"
+    ],
+    "key": "Bb"
+   },
+   {
+    "t": 20.075,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": 21.146,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 23.288,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": 25.431,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 26.502,
+    "root": "Bb",
+    "pcs": [
+     "Bb",
+     "D",
+     "F"
+    ],
+    "key": "Bb"
+   },
+   {
+    "t": 27.573,
+    "root": "C",
+    "pcs": [
+     "C",
+     "E",
+     "G"
+    ],
+    "key": "C"
+   },
+   {
+    "t": 28.645,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 30.787,
+    "root": "Bb",
+    "pcs": [
+     "Bb",
+     "D",
+     "F"
+    ],
+    "key": "Bb"
+   },
+   {
+    "t": 31.858,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": 32.929,
+    "root": "C",
+    "pcs": [
+     "C",
+     "E",
+     "G"
+    ],
+    "key": "C"
+   },
+   {
+    "t": 34.001,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 36.143,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": 37.214,
+    "root": "Bb",
+    "pcs": [
+     "Bb",
+     "D",
+     "F"
+    ],
+    "key": "Bb"
+   },
+   {
+    "t": 38.286,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 40.26,
+    "root": "C",
+    "pcs": [
+     "C",
+     "E",
+     "G"
+    ],
+    "key": "C"
+   },
+   {
+    "t": 41.331,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 44.545,
+    "root": "A",
+    "pcs": [
+     "A",
+     "C",
+     "E"
+    ],
+    "key": "Am"
+   },
+   {
+    "t": 45.616,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 47.759,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": 48.83,
+    "root": "C",
+    "pcs": [
+     "C",
+     "E",
+     "G"
+    ],
+    "key": "C"
+   },
+   {
+    "t": 49.901,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 53.115,
+    "root": "C",
+    "pcs": [
+     "C",
+     "E",
+     "G"
+    ],
+    "key": "C"
+   },
+   {
+    "t": 54.186,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   },
+   {
+    "t": 57.4,
+    "root": "G",
+    "pcs": [
+     "G",
+     "Bb",
+     "D"
+    ],
+    "key": "Gm"
+   },
+   {
+    "t": 58.471,
+    "root": "F",
+    "pcs": [
+     "F",
+     "A",
+     "C"
+    ],
+    "key": "F"
+   }
+  ]
+ },
+ "slices": {
+  "hover.F": [
+   {
+    "start": 0.25,
+    "dur": 1.15,
+    "peak": 0.5046,
+    "midi": 65
+   },
+   {
+    "start": 1.62,
+    "dur": 1.15,
+    "peak": 0.5018,
+    "midi": 65
+   },
+   {
+    "start": 2.99,
+    "dur": 1.15,
+    "peak": 0.501,
+    "midi": 65
+   }
+  ],
+  "hover.G": [
+   {
+    "start": 4.36,
+    "dur": 1.15,
+    "peak": 0.5018,
+    "midi": 67
+   },
+   {
+    "start": 5.73,
+    "dur": 1.15,
+    "peak": 0.5006,
+    "midi": 67
+   },
+   {
+    "start": 7.1,
+    "dur": 1.15,
+    "peak": 0.5012,
+    "midi": 67
+   }
+  ],
+  "hover.A": [
+   {
+    "start": 8.47,
+    "dur": 1.15,
+    "peak": 0.5002,
+    "midi": 69
+   },
+   {
+    "start": 9.84,
+    "dur": 1.15,
+    "peak": 0.5017,
+    "midi": 69
+   },
+   {
+    "start": 11.21,
+    "dur": 1.15,
+    "peak": 0.5098,
+    "midi": 69
+   }
+  ],
+  "hover.Bb": [
+   {
+    "start": 12.58,
+    "dur": 1.15,
+    "peak": 0.4997,
+    "midi": 70
+   },
+   {
+    "start": 13.95,
+    "dur": 1.15,
+    "peak": 0.5005,
+    "midi": 70
+   },
+   {
+    "start": 15.32,
+    "dur": 1.15,
+    "peak": 0.5013,
+    "midi": 70
+   }
+  ],
+  "hover.C": [
+   {
+    "start": 16.69,
+    "dur": 1.15,
+    "peak": 0.5009,
+    "midi": 72
+   },
+   {
+    "start": 18.06,
+    "dur": 1.15,
+    "peak": 0.5008,
+    "midi": 72
+   },
+   {
+    "start": 19.43,
+    "dur": 1.15,
+    "peak": 0.501,
+    "midi": 72
+   }
+  ],
+  "hover.D": [
+   {
+    "start": 20.8,
+    "dur": 1.15,
+    "peak": 0.4999,
+    "midi": 74
+   },
+   {
+    "start": 22.17,
+    "dur": 1.15,
+    "peak": 0.5005,
+    "midi": 74
+   },
+   {
+    "start": 23.54,
+    "dur": 1.15,
+    "peak": 0.5011,
+    "midi": 74
+   }
+  ],
+  "hover.E": [
+   {
+    "start": 24.91,
+    "dur": 1.15,
+    "peak": 0.5006,
+    "midi": 76
+   },
+   {
+    "start": 26.28,
+    "dur": 1.15,
+    "peak": 0.5004,
+    "midi": 76
+   },
+   {
+    "start": 27.65,
+    "dur": 1.15,
+    "peak": 0.5005,
+    "midi": 76
+   }
+  ],
+  "select.F": [
+   {
+    "start": 29.02,
+    "dur": 1.7,
+    "peak": 0.4993,
+    "midi": 65
+   },
+   {
+    "start": 30.94,
+    "dur": 1.7,
+    "peak": 0.5005,
+    "midi": 65
+   }
+  ],
+  "select.G": [
+   {
+    "start": 32.86,
+    "dur": 1.7,
+    "peak": 0.5013,
+    "midi": 67
+   },
+   {
+    "start": 34.78,
+    "dur": 1.7,
+    "peak": 0.5006,
+    "midi": 67
+   }
+  ],
+  "select.A": [
+   {
+    "start": 36.7,
+    "dur": 1.7,
+    "peak": 0.5011,
+    "midi": 69
+   },
+   {
+    "start": 38.62,
+    "dur": 1.7,
+    "peak": 0.5019,
+    "midi": 69
+   }
+  ],
+  "select.Bb": [
+   {
+    "start": 40.54,
+    "dur": 1.7,
+    "peak": 0.5008,
+    "midi": 58
+   },
+   {
+    "start": 42.46,
+    "dur": 1.7,
+    "peak": 0.5002,
+    "midi": 58
+   }
+  ],
+  "select.C": [
+   {
+    "start": 44.38,
+    "dur": 1.7,
+    "peak": 0.5023,
+    "midi": 60
+   },
+   {
+    "start": 46.3,
+    "dur": 1.7,
+    "peak": 0.4998,
+    "midi": 60
+   }
+  ],
+  "select.D": [
+   {
+    "start": 48.22,
+    "dur": 1.7,
+    "peak": 0.5008,
+    "midi": 62
+   },
+   {
+    "start": 50.14,
+    "dur": 1.7,
+    "peak": 0.501,
+    "midi": 62
+   }
+  ],
+  "select.E": [
+   {
+    "start": 52.06,
+    "dur": 1.7,
+    "peak": 0.5013,
+    "midi": 64
+   },
+   {
+    "start": 53.98,
+    "dur": 1.7,
+    "peak": 0.5009,
+    "midi": 64
+   }
+  ],
+  "discover.F": [
+   {
+    "start": 55.9,
+    "dur": 2,
+    "peak": 0.4987,
+    "midi": 65
+   }
+  ],
+  "discover.Gm": [
+   {
+    "start": 58.12,
+    "dur": 2,
+    "peak": 0.4994,
+    "midi": 67
+   }
+  ],
+  "discover.Am": [
+   {
+    "start": 60.34,
+    "dur": 2,
+    "peak": 0.5005,
+    "midi": 64
+   }
+  ],
+  "discover.Bb": [
+   {
+    "start": 62.56,
+    "dur": 2,
+    "peak": 0.5014,
+    "midi": 65
+   }
+  ],
+  "discover.C": [
+   {
+    "start": 64.78,
+    "dur": 2,
+    "peak": 0.4946,
+    "midi": 64
+   }
+  ],
+  "discover.Dm": [
+   {
+    "start": 67,
+    "dur": 2,
+    "peak": 0.4955,
+    "midi": 65
+   }
+  ],
+  "star.F": [
+   {
+    "start": 69.22,
+    "dur": 1.4,
+    "peak": 0.4983,
+    "midi": 72
+   }
+  ],
+  "star.Gm": [
+   {
+    "start": 70.84,
+    "dur": 1.4,
+    "peak": 0.5018,
+    "midi": 74
+   }
+  ],
+  "star.Am": [
+   {
+    "start": 72.46,
+    "dur": 1.4,
+    "peak": 0.505,
+    "midi": 72
+   }
+  ],
+  "star.Bb": [
+   {
+    "start": 74.08,
+    "dur": 1.4,
+    "peak": 0.4919,
+    "midi": 74
+   }
+  ],
+  "star.C": [
+   {
+    "start": 75.7,
+    "dur": 1.4,
+    "peak": 0.509,
+    "midi": 72
+   }
+  ],
+  "star.Dm": [
+   {
+    "start": 77.32,
+    "dur": 1.4,
+    "peak": 0.4966,
+    "midi": 74
+   }
+  ],
+  "star_done.F": [
+   {
+    "start": 78.94,
+    "dur": 2.8,
+    "peak": 0.4992,
+    "midi": 60
+   }
+  ],
+  "star_done.Gm": [
+   {
+    "start": 81.96,
+    "dur": 2.8,
+    "peak": 0.5007,
+    "midi": 62
+   }
+  ],
+  "star_done.Am": [
+   {
+    "start": 84.98,
+    "dur": 2.8,
+    "peak": 0.501,
+    "midi": 60
+   }
+  ],
+  "star_done.Bb": [
+   {
+    "start": 88,
+    "dur": 2.8,
+    "peak": 0.4997,
+    "midi": 62
+   }
+  ],
+  "star_done.C": [
+   {
+    "start": 91.02,
+    "dur": 2.8,
+    "peak": 0.5027,
+    "midi": 60
+   }
+  ],
+  "star_done.Dm": [
+   {
+    "start": 94.04,
+    "dur": 2.8,
+    "peak": 0.5005,
+    "midi": 62
+   }
+  ],
+  "butterfly": [
+   {
+    "start": 97.06,
+    "dur": 0.9,
+    "peak": 0.4985,
+    "midi": 81
+   },
+   {
+    "start": 98.18,
+    "dur": 0.9,
+    "peak": 0.4993,
+    "midi": 84
+   }
+  ],
+  "trampoline": [
+   {
+    "start": 99.3,
+    "dur": 1,
+    "peak": 0.5,
+    "midi": 53
+   },
+   {
+    "start": 100.52,
+    "dur": 1,
+    "peak": 0.5018,
+    "midi": 48
+   }
+  ],
+  "sparkle.F": [
+   {
+    "start": 101.74,
+    "dur": 1.8,
+    "peak": 0.4978,
+    "midi": 84
+   }
+  ],
+  "sparkle.Gm": [
+   {
+    "start": 103.76,
+    "dur": 1.8,
+    "peak": 0.5053,
+    "midi": 86
+   }
+  ],
+  "sparkle.Am": [
+   {
+    "start": 105.78,
+    "dur": 1.8,
+    "peak": 0.4934,
+    "midi": 93
+   }
+  ],
+  "sparkle.Bb": [
+   {
+    "start": 107.8,
+    "dur": 1.8,
+    "peak": 0.4962,
+    "midi": 89
+   }
+  ],
+  "sparkle.C": [
+   {
+    "start": 109.82,
+    "dur": 1.8,
+    "peak": 0.5013,
+    "midi": 84
+   }
+  ],
+  "sparkle.Dm": [
+   {
+    "start": 111.84,
+    "dur": 1.8,
+    "peak": 0.4839,
+    "midi": 86
+   }
+  ]
+ },
+ "source": "VSCO-2 CE Upright Piano (Simon Dalzell / Ivy Audio + Versilian Studios), CC0 1.0; VSCO-2 CE Percussion Glockenspiel (Versilian Studios), CC0 1.0"
+}

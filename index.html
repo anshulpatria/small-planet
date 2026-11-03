@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Anshul Patria · Small Planet</title>
+<meta name="description" content="Anshul Patria's portfolio as a tiny planet you can walk around: nine live projects to walk up to and try.">
+<meta name="theme-color" content="#E4E5E0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<script type="importmap">
+{ "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/": "./vendor/three/addons/",
+    "three-mesh-bvh": "./vendor/three-mesh-bvh/index.module.js"
+} }
+</script>
+</head>
+<body class="is-loading">
+<!-- keyboard focus styles show only after Tab, never for mouse, touch or the focus() on load -->
+<script>addEventListener("keydown",e=>{if(e.key==="Tab")document.documentElement.classList.add("kbd")},true);addEventListener("pointerdown",()=>document.documentElement.classList.remove("kbd"),true);</script>
+
+<canvas id="scene" aria-label="An explorable 3D archipelago of projects"></canvas>
+
+<!-- INTRO / LOADER -->
+<section id="intro" class="intro">
+  <div class="intro-inner">
+    <p class="eyebrow">A portfolio you can walk around</p>
+    <h1 class="intro-name"><span class="intro-name-text">Anshul Patria</span><svg viewBox="0 0 460 90" aria-hidden="true" focusable="false">
+      <defs>
+        <text id="nm-t" x="0" y="78" font-size="100" letter-spacing="-2">Anshul Patria</text>
+        <g id="nm-1"><use href="#nm-t"/><use href="#nm-t" x=".22" y=".275"/></g>
+        <g id="nm-2"><use href="#nm-1"/><use href="#nm-1" x=".44" y=".55"/></g>
+        <g id="nm-3"><use href="#nm-2"/><use href="#nm-2" x=".88" y="1.1"/></g>
+        <g id="nm-4"><use href="#nm-3"/><use href="#nm-3" x="1.76" y="2.2"/></g>
+        <g id="nm-5"><use href="#nm-4"/><use href="#nm-4" x="3.52" y="4.4"/></g>
+      </defs>
+      <g class="nm-ink"><use href="#nm-5"/><use href="#nm-5" x="4" y="5"/></g>
+      <use class="nm-ext" href="#nm-5"/>
+      <use class="nm-face" href="#nm-t"/>
+    </svg></h1>
+    <p class="intro-tag">I design things, then build them for real. Toys, tools and a game or two, all live. Walk up to one and try it.</p>
+    <div class="loadbar" role="progressbar" aria-label="Loading the world" aria-valuemin="0" aria-valuemax="100"><span id="loadfill"></span></div>
+    <p id="loadnote" class="loadnote">Raising the islands…</p>
+    <div class="intro-actions">
+      <button id="enter" class="btn-cel" disabled>Explore world</button>
+      <button id="introList" class="btn-cel btn-cel-grey" data-mode="list">View projects</button>
+    </div>
+  </div>
+</section>
+
+<!-- HUD -->
+<header class="hud-top">
+  <a class="wordmark" href="https://anshulpatria.github.io/" aria-label="Anshul Patria home">Anshul Patria</a>
+  <div class="hud-right">
+    <div class="seg" role="tablist" aria-label="View mode">
+      <button role="tab" data-mode="world" aria-selected="true">Explore world</button>
+      <button role="tab" data-mode="list" aria-selected="false">View projects</button>
+    </div>
+    <!-- ambient sound: off until the first click/tap/key (browsers block autoplay); the choice is remembered -->
+    <button id="soundBtn" class="icon-btn sound-btn" aria-label="Mute ambient sound" aria-pressed="false" title="Sound on · click to mute">
+      <svg viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="snd-on" d="M15.5 9.2a4 4 0 0 1 0 5.6M18 6.8a7.4 7.4 0 0 1 0 10.4"/><path class="snd-off" d="m16 9.5 5 5m0-5-5 5"/></svg>
+    </button>
+    <button id="boothBtn" class="icon-btn booth-btn" aria-label="Customise Blip and take a photo" aria-controls="booth" title="Customise Blip · photo">
+      <svg viewBox="0 0 24 24"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3v10H4z"/><circle cx="12" cy="13.2" r="3.2"/></svg>
+    </button>
+    <button id="goalBtn" class="icon-btn goal-btn" aria-label="Show the current goal" aria-expanded="false" aria-controls="goal" title="What next?" hidden>
+      <svg viewBox="0 0 24 24"><path d="M9.5 18h5M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3Z"/></svg>
+    </button>
+    <button id="mapBtn" class="icon-btn" aria-label="Open map (M)" title="Map · M">
+      <svg viewBox="0 0 24 24"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14"/></svg>
+    </button>
+  </div>
+</header>
+
+<footer class="hud-bottom">
+  <nav class="progress" aria-labelledby="discLabel">
+    <span class="progress-label" id="discLabel">Projects discovered</span>
+    <span class="progress-count" aria-live="polite"><b id="discCount">0</b> / <span id="discTotal">9</span></span>
+    <ul id="glyphs" class="glyphs"></ul>
+    <p id="glyphCta" class="progress-cta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-5-5 5 5-5 5"/></svg><span>Tap a project to go there</span></p>
+    <!-- shown at 9 / 9: reopens the finale card -->
+    <button id="sayHi" class="say-hi" type="button" aria-haspopup="dialog" aria-controls="finale" hidden>Say hi</button>
+  </nav>
+</footer>
+
+<div id="hint" class="hint" aria-live="polite"></div>
+<button id="prompt" class="prompt" hidden><kbd>E</kbd><span class="tap-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-.6a6 6 0 0 1-4.6-2.2L4.6 16a1.6 1.6 0 0 1 2.4-2l2 2"/></svg></span><span id="promptText">Interact</span></button>
+<div id="toast" class="toast" aria-live="polite"></div>
+<!-- the current goal: only shown when the visitor asks (the lightbulb in the top bar) -->
+<div id="goal" class="goal" role="dialog" aria-labelledby="goalHead" hidden>
+  <p id="goalHead" class="goal-head">Next up</p>
+  <p id="goalText" class="goal-text" aria-live="polite"></p>
+  <button id="goalClose" class="goal-close" aria-label="Close goal"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+</div>
+
+<!-- Focus-mode controls for installations -->
+<div id="focusbar" class="focusbar" hidden>
+  <span id="focusTitle" class="focus-title"></span>
+  <span id="focusStatus" class="focus-status" hidden></span>
+  <div id="focusTools" class="focus-tools"></div>
+  <button id="focusInfo" class="chip">About</button>
+  <button id="focusExit" class="chip chip-ink" aria-label="Leave (Esc)"><svg class="x" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"/></svg>Leave <kbd>Esc</kbd></button>
+</div>
+
+<!-- photo booth + Blip customiser -->
+<aside id="booth" class="panel booth" aria-hidden="true" aria-labelledby="boothTitle" role="dialog">
+  <button class="panel-close" id="boothClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <div class="panel-body">
+    <p class="panel-meta">Photo booth</p>
+    <h2 id="boothTitle">Dress up Blip</h2>
+    <p class="panel-desc">Pick a look, then take a postcard home.</p>
+    <h3 class="booth-h">Antenna</h3><div class="booth-row" data-opt="antenna"></div>
+    <h3 class="booth-h">Colour</h3><div class="booth-row" data-opt="colour"></div>
+    <h3 class="booth-h">Pattern</h3><div class="booth-row" data-opt="pattern"></div>
+    <button id="boothPhoto" class="btn btn-primary booth-photo" type="button">Take photo</button>
+  </div>
+</aside>
+<!-- PROJECT PANEL -->
+<aside id="panel" class="panel" aria-hidden="true" aria-labelledby="panelName" role="dialog">
+  <button class="panel-close" id="panelClose" aria-label="Close">
+    <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
+  <figure class="panel-shot"><img id="panelShot" alt=""></figure>
+  <div class="panel-body">
+    <p class="panel-meta"><span id="panelOrd"></span> · <span id="panelType"></span> · <span id="panelInput"></span></p>
+    <h2 id="panelName"></h2>
+    <p id="panelMyth" class="panel-myth"></p>
+    <p id="panelDesc" class="panel-desc"></p>
+    <ul id="panelTech" class="tags"></ul>
+    <a id="panelOpen" class="btn btn-primary" target="_blank" rel="noopener">Open project <span aria-hidden="true">↗</span></a>
+  </div>
+</aside>
+
+<!-- FINALE: every project discovered (ui.js opens it once, then from "Say hi") -->
+<section id="finale" class="finale" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="finaleHead" aria-describedby="finaleText">
+  <div class="finale-card">
+    <button class="panel-close" id="finaleClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <ul id="finaleGlyphs" class="finale-glyphs" aria-hidden="true"></ul>
+    <p id="finaleMeta" class="panel-meta">Every project discovered</p>
+    <h2 id="finaleHead">Congratulations, you've explored every project!</h2>
+    <p id="finaleText" class="finale-text">There are still a few secrets to find here, but if you'd like to make something together, say hi.</p>
+    <div class="finale-actions">
+      <a id="finaleLink" class="btn-cel" target="_blank" rel="noopener">Connect on LinkedIn <span aria-hidden="true">↗</span></a>
+      <button id="finaleStay" class="finale-stay" type="button">Keep exploring</button>
+    </div>
+  </div>
+</section>
+
+<!-- MAP -->
+<section id="map" class="map" aria-hidden="true" role="dialog" aria-label="World map">
+  <div class="map-card">
+    <div class="map-head">
+      <h2>Archipelago</h2>
+      <p>Choose a destination to travel there.</p>
+      <button class="panel-close" id="mapClose" aria-label="Close map"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <svg id="mapSvg" class="map-svg" viewBox="-110 -110 220 220"></svg>
+    <ul id="mapLegend" class="map-legend"></ul>
+  </div>
+</section>
+
+<!-- PROJECT LIST (also the no-WebGL fallback) -->
+<section id="list" class="list" aria-hidden="true">
+  <div class="list-inner">
+    <div class="list-head">
+      <h2>Projects</h2>
+      <button class="btn btn-ghost" data-mode="world" id="listBack">Explore world</button>
+    </div>
+    <p id="fallbackNote" class="fallback-note" hidden>This device can't run the 3D world reliably, so here is every project as a list.</p>
+    <div id="cards" class="cards"></div>
+  </div>
+</section>
+
+<!-- Touch controls -->
+<div id="stick" class="stick" aria-hidden="true"><div class="stick-knob"></div></div>
+<button id="jumpBtn" class="jump-btn" aria-label="Jump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 14l6-6 6 6"/><path d="M6 19h12"/></svg></button>
+
+<div id="fade" class="fade"></div>
+
+<!-- FILM PLAYER -->
+<section id="video" class="video" aria-hidden="true" role="dialog" aria-label="Film player">
+  <div class="video-card">
+    <button class="panel-close" id="videoClose" aria-label="Close film"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="video-frame"><iframe id="videoFrame" src="about:blank" title="Film" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    <p id="videoCaption" class="video-caption"></p>
+  </div>
+</section>
+
+<noscript>
+  <style>.intro{display:none}.list{opacity:1;pointer-events:auto;visibility:visible}</style>
+  <p style="padding:24px">The archipelago needs JavaScript. The projects live at <a href="https://anshulpatria.github.io/">anshulpatria.github.io</a>.</p>
+</noscript>
+
+<script type="module" src="src/main.js?v=20261103-1734"></script>
+</body>
+</html>
