@@ -1,0 +1,37 @@
+Copyright (c) 2026 Anshul Patria. All rights reserved.
+
+This repository and the website built from it ("Small Planet") are the exclusive
+property of Anshul Patria. That includes the source code, the 3D models, the
+characters (including Blip, Lumen, Zip, Gulp, Chomp, Tall Sid and AP), the
+artwork, the illustrations, the screenshots, the written copy and the overall
+design.
+
+No licence is granted. You may view this work in a web browser and look at the
+code on GitHub, and nothing more. Without prior written permission from Anshul
+Patria, you may not copy, reproduce, modify, distribute, publish, display,
+sublicense, sell, or create derivative works from any part of it, in whole or
+in part, for any purpose, commercial or non-commercial. Using any part of it to
+train machine-learning or AI models is also prohibited.
+
+Being able to see this repository, or fork it through GitHub's interface, does
+not grant any right to use its contents.
+
+For permission, contact Anshul Patria at anshul.patria@gmail.com.
+
+-------------------------------------------------------------------------------
+Third-party material (not covered by the claim above)
+
+The following parts belong to their respective owners and stay under their own
+terms:
+
+- three.js (vendor/three/): MIT License, copyright 2010-2024 three.js authors.
+  See vendor/three/LICENSE.
+- three-mesh-bvh (vendor/three-mesh-bvh/): MIT License, copyright 2018 Garrett
+  Johnson. See vendor/three-mesh-bvh/LICENSE.
+- Background music "Tiny Adventures Await" (assets/audio/ta-full.m4a): used
+  under licence from Magnific; it is not owned by Anshul Patria and may not be
+  extracted or reused.
+- Piano and glockenspiel samples in assets/audio/interactions.m4a: VSCO-2
+  Community Edition (Simon Dalzell / Ivy Audio and Versilian Studios), CC0 1.0.
+- Fonts Bricolage Grotesque and Instrument Sans: loaded from Google Fonts under
+  the SIL Open Font License 1.1; not included in this repository.
