@@ -22,6 +22,14 @@ export const DEFAULT_WELLS = [
   { x: 0.2, z: -3.4, sign: -1 },   // repeller, sits on the straight line to the goal
   { x: 1.75, z: -2.9, sign: 1 },   // attractor, bends shots back toward the goal
 ];
+/* GA1: the FIRST arrangement a visitor meets (same hoop, same bumpers). The attractor sits just short of the
+   hoop on the aim line and funnels a roughly-aimed shot in; the repeller leans from the left and nudges the
+   ball toward the hoop instead of blocking the line. Every later layout (DEFAULT_WELLS, challengeLayout,
+   randomWells) is unchanged. Order matches DEFAULT_WELLS: [repeller, attractor]. */
+export const FIRST_WELLS = [
+  { x: -1.0, z: -4.6, sign: -1 },
+  { x: 1.4, z: -4.2, sign: 1 },
+];
 
 /* One fixed step. s = {x,z,vx,vz}. Returns 0 nothing, 1 bounced off a rail, 2 inside goal, 3 bumper.
    On a bounce, s.ik (kind), s.ix/s.iz (unit normal of the surface) and s.ib (bumper index) and s.isp
@@ -380,8 +388,8 @@ export default class GravityPong {
 
     // ---- wells: soft contracting / expanding rings around a solid-looking core
     this.wells = [
-      { x: DEFAULT_WELLS[0].x, z: DEFAULT_WELLS[0].z, sign: -1, tx: DEFAULT_WELLS[0].x, tz: DEFAULT_WELLS[0].z },
-      { x: DEFAULT_WELLS[1].x, z: DEFAULT_WELLS[1].z, sign: 1, tx: DEFAULT_WELLS[1].x, tz: DEFAULT_WELLS[1].z },
+      { x: FIRST_WELLS[0].x, z: FIRST_WELLS[0].z, sign: -1, tx: FIRST_WELLS[0].x, tz: FIRST_WELLS[0].z },
+      { x: FIRST_WELLS[1].x, z: FIRST_WELLS[1].z, sign: 1, tx: FIRST_WELLS[1].x, tz: FIRST_WELLS[1].z },
     ];
     this.wellViews = [];
     const ringGeo = geo(new THREE.RingGeometry(0.955, 1, 64));
@@ -407,7 +415,7 @@ export default class GravityPong {
       let extra = null;
       if (w.sign > 0) { extra = mesh(geo(new THREE.TorusGeometry(0.42, 0.05, 8, 32)), wm, g, false); extra.rotation.x = Math.PI / 2; extra.position.y = COURT.y + 0.3; }
       else { extra = mesh(geo(new THREE.ConeGeometry(0.17, 0.34, 4)), wm, g, false); extra.position.y = COURT.y + 0.68; }
-      this.wellViews.push({ g, core, extra, rings, sign: w.sign });
+      this.wellViews.push({ g, core, extra, rings, sign: w.sign, dip: 0 });
     }
     this.syncWells();
 
@@ -436,7 +444,7 @@ export default class GravityPong {
     this.pullX = 0; this.pullZ = 0; this.aiming = false;
     this.goals = 0; this.misses = 0; this.free = false; this.focused = false;
     this.prevPts = new Float32Array(this.DOTS * 2); this.prevN = 0;
-    this.assist = null;
+    this.assist = null; this.launchOff = { x: 0, z: 0 };
     this._tmpV = { vx: 0, vz: 0, power: 0 };
     this._dummy = new THREE.Object3D();
     this._inv = new THREE.Matrix4(); this._ray = new THREE.Ray(); this._hit = new THREE.Vector3();
@@ -527,10 +535,12 @@ export default class GravityPong {
     this.focused = true;
     const pos = new THREE.Vector3(0, 9, 6.2);
     this.ctx.group.updateWorldMatrix(true, false); this._focusW.copy(pos).applyMatrix4(this.ctx.group.matrixWorld);   // where the camera lands
-    if (this.ctx.isSolved && this.ctx.isSolved()) this.free = true;   // solved on an earlier visit: the challenge is open
+    if (!this.free && this.ctx.isSolved && this.ctx.isSolved()) {   // solved on an earlier visit: the challenge is open, on the classic layout
+      this.free = true; this.setLayout({ wells: DEFAULT_WELLS.map((w) => ({ ...w })), goal: GOAL }); this.snapLayout();
+    }
     this.pushStatus();
     if (this.coach.el) { this.coach.scored = false; this.showCoach(false); }
-    else this.ctx.ui.toast("Pull the plunger back from the ball, then let go.");
+    else this.ctx.ui.toast("Pull back from the ball, release, and aim for the blue ring. Gravity will interfere.");
     return { pos, look: new THREE.Vector3(0, 0.4, -3.0) };
   }
   exit() { this.focused = false; this.aiming = false; this.hideCoach(); if (this.round) this.stopChallenge(); this.updatePreview(); }
@@ -543,7 +553,7 @@ export default class GravityPong {
     el.innerHTML = '<svg class="gp-coach-drag" aria-hidden="true"><line/><path d="M-9 -7L0 4L9 -7"/></svg>'
       + '<div class="gp-coach-tap" aria-hidden="true"></div>'
       + '<div class="gp-coach-hand" aria-hidden="true">' + HAND_SVG + '</div>'
-      + '<p class="gp-coach-line" role="note"><span class="gp-long">Drag back from the ball, aim the dots at the blue ring, let go</span><span class="gp-short">Drag back from the ball, then let go</span></p>';
+      + '<p class="gp-coach-line" role="note"><span class="gp-long">Pull back from the ball, release, and aim for the blue ring. Gravity will interfere.</span><span class="gp-short">Pull back from the ball, then release</span></p>';
     document.body.appendChild(el);
     const q = (s) => el.querySelector(s);
     const c = this.coach;
@@ -664,9 +674,9 @@ export default class GravityPong {
   pushStatus(tools = true) {
     const r = this.round;
     if (r && r.phase === "run") {
-      this.ctx.ui.status(`${Math.ceil(r.left - 1e-9)}s  -  ${r.score} pts${comboMult(r.streak) > 1 ? "  -  combo x" + comboMult(r.streak) : ""}`);
+      this.ctx.ui.status(`${Math.ceil(r.left - 1e-9)}s · ${r.score} pts${comboMult(r.streak) > 1 ? " · combo x" + comboMult(r.streak) : ""}`);
     } else if (r) {
-      this.ctx.ui.status(`Time! Score ${r.score} - best ${r.best}${r.newBest ? " (new!)" : ""}`);
+      this.ctx.ui.status(`Time! Score ${r.score} · best ${r.best}${r.newBest ? " (new!)" : ""}`);
     } else {
       this.ctx.ui.status(this.free ? `Goals: ${this.goals}` : "Curve a shot into the blue ring");
     }
@@ -690,7 +700,7 @@ export default class GravityPong {
     this.best = Math.max(this.best, loadBest());
     this.round = newRound(this.best);
     this.setLayout(challengeLayout(Math.random, this.goal));
-    this.popText = "GO!"; this.popSub = ""; this.popT = 1; this.goalLit = 0; this.goalPulse = 0;
+    this.popText = "LET’S GO!"; this.popSub = ""; this.popT = 1; this.goalLit = 0; this.goalPulse = 0;
     this.pending = null; this.aiming = false; this.flags = newFlags();
     if (this.mode !== "ready") { this.mode = "fade"; this.modeT = 0; }
     this.signPop = 1; this.drawSign(true); this.updatePreview(); this.statusKey = ""; this.pushStatus();
@@ -772,18 +782,20 @@ export default class GravityPong {
     this.updatePreview();
   }
 
-  pullToVel() { pullToVelocity(this.pullX, this.pullZ, this._tmpV); }
 
   release() {
     this.aiming = false; this.coach.held = false;
     pullToVelocity(this.pullX, this.pullZ, this._tmpV);
     if (this._tmpV.power === 0) { this.updatePreview(); return; }
+    // GA1 G1: hideCoach() and updatePreview() reuse _tmpV for the idle preview pull, so read the shot first
+    let vx = this._tmpV.vx, vz = this._tmpV.vz, power = this._tmpV.power;
     this.hideCoach();   // the first real shot puts the coach away
-    if (!this.layoutSettled()) { this.snapLayout(); this.pullToVel(); }
+    if (!this.layoutSettled()) { this.snapLayout(); pullToVelocity(this.pullX, this.pullZ, this._tmpV); vx = this._tmpV.vx; vz = this._tmpV.vz; power = this._tmpV.power; }
     const s = this.ballS;
     this.flags = newFlags();
-    s.x = LAUNCH.x; s.z = LAUNCH.z; s.vx = this._tmpV.vx; s.vz = this._tmpV.vz;
-    this.plungerS.v -= 9 * this._tmpV.power; // snap forward with a little overshoot
+    s.x = LAUNCH.x; s.z = LAUNCH.z; s.vx = vx; s.vz = vz;
+    this.launchOff.x = this.ballG.position.x - LAUNCH.x; this.launchOff.z = this.ballG.position.z - LAUNCH.z;   // GA1 G2: the ball is drawn from the cup and glides onto the sim path over 0.3 s
+    this.plungerS.v -= 9 * power; // snap forward with a little overshoot
     this.mode = "flying"; this.life = 0; this.slow = 0; this.acc = 0;
     this.trailN = 0; this.trailClock = 0;
     this.updatePreview();
@@ -868,6 +880,11 @@ export default class GravityPong {
         v.rings[k].mat.opacity = 0.5 * Math.sin(ph * Math.PI);
       }
       const br = 1 + Math.sin(t * 3 + i) * 0.06 * (v.sign > 0 ? -1 : 1);
+      // GA1 G5: the solid core and its ring/cone sink into the playfield while the ball rolls over the well
+      let dip = 0;
+      if (this.mode === "flying") { const w = this.wells[i], bd = Math.hypot(this.ballS.x - w.x, this.ballS.z - w.z); dip = Math.max(0, Math.min(1, (0.85 - bd) / 0.35)); dip = dip * dip * (3 - 2 * dip); }
+      v.dip += (dip - v.dip) * (1 - Math.exp(-24 * dt));
+      v.core.position.y = COURT.y + 0.3 - v.dip * 0.9; v.extra.position.y = (v.sign > 0 ? COURT.y + 0.3 : COURT.y + 0.68) - v.dip * 0.9;
       v.core.scale.setScalar(br);
       if (v.sign > 0) v.extra.rotation.z = t * 0.8; else v.extra.rotation.y = t * 1.2;
     }
@@ -916,7 +933,10 @@ export default class GravityPong {
         const sp = Math.hypot(s.vx, s.vz);
         this.slow = sp < 0.35 ? this.slow + dt : 0;
         if (this.life > (this.round ? 4.5 : 6) || this.slow > (this.round ? 0.5 : 0.9)) { this.mode = "fade"; this.modeT = 0; }
-        this.ballG.position.set(s.x, this.BY, s.z);
+        const lo = Math.max(0, 1 - this.life / 0.3); this.lo2 = lo;
+        // GA1 G3: draw the ball at the sub-step remainder (acc is time since the last 1/120 s step) so frames with 1 or 2 steps move it evenly
+        const ex = Math.max(COURT.minX + BALL_R, Math.min(COURT.maxX - BALL_R, s.x + s.vx * this.acc)), ez = Math.max(COURT.minZ + BALL_R, Math.min(COURT.maxZ - BALL_R, s.z + s.vz * this.acc));
+        this.ballG.position.set(ex + this.launchOff.x * this.lo2, this.BY, ez + this.launchOff.z * this.lo2);
         this.trailClock += dt;
         if (this.trailClock > 0.025) {
           this.trailClock = 0;
@@ -992,7 +1012,7 @@ export default class GravityPong {
     this.drawSign(true); this.burst(); this.ripple(this.goal.x, this.goal.z, 1.6, C.sun);
     if (!this.free) {
       this.free = true;
-      this.ctx.ui.toast("Goal! The wells are yours now.");
+      this.ctx.ui.toast("Goal! Gravity is now your problem.");
       this.ctx.solved();
     }
     this.statusKey = ""; this.pushStatus();

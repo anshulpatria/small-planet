@@ -17,8 +17,45 @@ function blipColour() {
   return c.body;
 }
 
+/* K2: the headgear Blip wears, screen-printed on the cloth. Flat shapes only: a cream fill and a navy ink line on the
+   cloth's own colour (the cream and ink never shade), one drawing per customiser antenna, on a face-and-head crest.
+   Read once when the flag is planted: the planted flag is a memento of that visit and does not follow later booth changes. */
+const INK = "#1E1F26", CREAM = "#FFF1CE", PRINT = { w: 520, h: 340 };
+function emblemTexture(antenna, ground) {
+  const cv = document.createElement("canvas"); cv.width = PRINT.w; cv.height = PRINT.h;
+  const c = cv.getContext("2d"); c.lineJoin = c.lineCap = "round";
+  c.fillStyle = ground; c.fillRect(0, 0, PRINT.w, PRINT.h);   // the cloth colour is in the texture, so the material stays white and the print never tints
+  const blob = (x, y, r) => { c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fillStyle = CREAM; c.fill(); c.lineWidth = 9; c.strokeStyle = INK; c.stroke(); };
+  const line = (pts, w = 14) => {   // an inked stalk: ink wide, cream narrow on top
+    for (const [lw, col] of [[w, INK], [w - 9, CREAM]]) { c.beginPath(); c.moveTo(...pts[0]); for (let i = 1; i < pts.length; i++) c.lineTo(...pts[i]); c.lineWidth = lw; c.strokeStyle = col; c.stroke(); }
+  };
+  const curve = (a, b, d, w) => { const pts = []; for (let i = 0; i <= 14; i++) { const t = i / 14; pts.push([a[0] + (b[0] - a[0]) * t + d * Math.sin(Math.PI * t), a[1] + (b[1] - a[1]) * t]); } line(pts, w); };
+  const X = PRINT.w / 2, TOP = 170;   // the crown, where the antenna starts
+  if (antenna === "bulb") {
+    curve([X, TOP], [X + 8, 100], 14); blob(X + 10, 66, 36);
+    c.lineWidth = 6; c.strokeStyle = INK; c.beginPath(); c.moveTo(X - 6, 74); c.lineTo(X + 2, 56); c.lineTo(X + 12, 74); c.lineTo(X + 22, 56); c.stroke();
+    c.fillStyle = INK; c.fillRect(X - 10, 96, 40, 12);
+  } else if (antenna === "spring") {
+    const pts = []; for (let i = 0; i <= 60; i++) { const t = i / 60; pts.push([X + 26 * Math.sin(t * Math.PI * 7), TOP - 16 - t * 92]); } line(pts, 14); blob(X, 40, 22);
+  } else if (antenna === "leaf") {
+    line([[X, TOP], [X, 88]], 14);
+    const leaf = k => { c.save(); c.translate(X, 112); c.rotate(k * 0.9); c.beginPath(); c.ellipse(k * 36, -20, 40, 18, 0, 0, Math.PI * 2); c.fillStyle = CREAM; c.fill(); c.lineWidth = 9; c.strokeStyle = INK; c.stroke(); c.restore(); };
+    leaf(1); leaf(-1); blob(X, 80, 14);
+  } else {   // sprouts (the default): two stalks, two buds
+    curve([X - 18, TOP], [X - 56, 78], -20); blob(X - 60, 64, 24);
+    curve([X + 18, TOP], [X + 52, 92], 18); blob(X + 56, 78, 19);
+  }
+  // the head: a rounded square with Blip's one big eye
+  const hx = X - 92, hy = TOP - 6, hw = 184, hh = 150, r = 38;
+  c.beginPath(); c.moveTo(hx + r, hy); c.arcTo(hx + hw, hy, hx + hw, hy + hh, r); c.arcTo(hx + hw, hy + hh, hx, hy + hh, r); c.arcTo(hx, hy + hh, hx, hy, r); c.arcTo(hx, hy, hx + hw, hy, r); c.closePath();
+  c.fillStyle = CREAM; c.fill(); c.lineWidth = 10; c.strokeStyle = INK; c.stroke();
+  c.beginPath(); c.ellipse(X, hy + 74, 36, 40, 0, 0, Math.PI * 2); c.fillStyle = INK; c.fill();
+  c.beginPath(); c.arc(X + 9, hy + 62, 11, 0, Math.PI * 2); c.fillStyle = CREAM; c.fill();
+  const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; return tex;
+}
+
 /* the flag in its own frame: Y up, the pole on the origin, the cloth flying to +X */
-function buildFlag(colour) {
+function buildFlag(colour, antenna = "sprouts") {
   const g = new THREE.Group(); g.name = "BLIP_flag";
   const mat = (c, name) => { const m = new THREE.MeshStandardMaterial({ color: c, roughness: 0.8 }); m.name = name; return m; };
   const pole = new THREE.Mesh(new THREE.CylinderGeometry(POLE.r, POLE.r * 1.15, POLE.h, 10), mat("#F1E3C4", "BlipFlag_Pole"));
@@ -29,7 +66,9 @@ function buildFlag(colour) {
   const cg = new THREE.BoxGeometry(CLOTH.w, CLOTH.h, CLOTH.d, 12, 4, 1), p = cg.attributes.position;
   for (let i = 0; i < p.count; i++) { const x = p.getX(i) + CLOTH.w / 2; p.setZ(i, p.getZ(i) + CLOTH.amp * Math.sin(Math.PI * CLOTH.waves * x / CLOTH.w) * (x / CLOTH.w)); }
   cg.translate(CLOTH.w / 2 + POLE.r, 0, 0); cg.computeVertexNormals();
-  const cloth = new THREE.Mesh(cg, mat(colour, "BlipFlag_Cloth"));
+  // box faces: +x -x +y -y edges in the plain cloth colour, +z and -z carry the print (the back reads the right way round)
+  const print = mat("#ffffff", "BlipFlag_ClothPrint"); print.map = emblemTexture(antenna, colour);
+  const cloth = new THREE.Mesh(cg, [mat(colour, "BlipFlag_Cloth"), mat(colour, "BlipFlag_Cloth"), mat(colour, "BlipFlag_Cloth"), mat(colour, "BlipFlag_Cloth"), print, print]);
   cloth.position.y = POLE.h - CLOTH.h / 2 - 0.03; g.add(cloth);
   g.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   toonify(g); outline(g);
@@ -44,7 +83,7 @@ export function setupMoonFlag({ root, moon, spots, getPlayer, rig, fx, ui, tween
   const ground = moon.centre.clone().addScaledVector(up, moon.surface(up));
   old.visible = false; if (old.userData.hull) old.userData.hull.visible = false;
   const state = { planted: false, flag: null, busy: false };
-  const spot = { id: "moon-flag", kind: "extra", pos: ground.clone(), r: 2.2, body: "moon", label: "Plant your flag", target: old, off: () => state.planted || state.busy };
+  const spot = { id: "moon-flag", kind: "extra", pos: ground.clone(), r: 2.2, body: "moon", label: "Claim this rock", target: old, off: () => state.planted || state.busy };
   spot.run = async () => {
     if (state.planted || state.busy) return;
     const player = getPlayer();   // made after the moon is set up
@@ -66,7 +105,7 @@ export function setupMoonFlag({ root, moon, spots, getPlayer, rig, fx, ui, tween
       const across = new THREE.Vector3().crossVectors(up, away).normalize(), look = ground.clone().lerp(goal, 0.5).addScaledVector(up, SHOT.look);
       if (rig) rig.focus(look.clone().addScaledVector(across, SHOT.side).addScaledVector(up, SHOT.lift), look, up.clone());
       // the flag, in Blip's colour, upright on the moon and facing across his view (the cloth to his right)
-      const flag = buildFlag(blipColour()); state.flag = flag;
+      const flag = buildFlag(blipColour(), load().antenna); state.flag = flag;
       const right = new THREE.Vector3().crossVectors(away.clone().negate(), up).normalize();
       const rest = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(right, up, new THREE.Vector3().crossVectors(right, up)));
       root.parent.add(flag);
@@ -84,7 +123,7 @@ export function setupMoonFlag({ root, moon, spots, getPlayer, rig, fx, ui, tween
       flag.quaternion.copy(rest);
       state.planted = true;
       player.play("Cheer");
-      ui.toast("Flag planted. One small hop for Blip.", 3200);
+      ui.toast("Flag planted. Blip claims one (1) moon.", 3200);
       await sleep(1.4);
     } finally { state.busy = false; const p = getPlayer(); p.frozen = false; p.cinematic = false; if (rig) { rig.release(); rig.snap(p); } }
   };

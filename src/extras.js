@@ -33,6 +33,9 @@ export function terraceFrame(plateau, stand, kioskBody, centreOfBody) {
    The GLSL branch ids below are the same k, so the three can never drift apart; if you add
    or reorder one, change all three together. */
 export const FIELD_EFFECTS = ["Ripple", "Halftone", "Flow", "Voronoi", "Spiral", "Magnet", "Contour", "Truchet", "Metaballs"];
+/* GB3: the ONE format for every Field string (kiosk label and toast): "Name · n/9". n is the TILE number (row-major, 1-9), not a
+   discovered count, so it always matches the tile under Blip. No explanatory sentence anywhere. */
+export const fieldText = i => `${FIELD_EFFECTS[i]} · ${i + 1}/${FIELD_EFFECTS.length}`;
 
 /* GLSL: effect(i, uv, f, t) -> colour. uv 0..1 in the tile, f = the "cursor" in the same units. */
 const EFFECTS_GLSL = /* glsl */`
@@ -187,7 +190,7 @@ export class FieldFloor {
     const g = this.label.getContext("2d"), W = this.label.width, H = this.label.height;
     g.clearRect(0, 0, W, H);
     g.font = '700 46px "Bricolage Grotesque", system-ui, sans-serif'; g.textBaseline = "middle";
-    const txt = `${String(i + 1).padStart(2, "0")}  ${FIELD_EFFECTS[i]}`, w = g.measureText(txt).width;
+    const txt = fieldText(i), w = g.measureText(txt).width;
     g.fillStyle = "rgba(255,246,230,0.92)"; g.beginPath(); g.roundRect(18, 12, w + 44, H - 24, 30); g.fill();
     g.fillStyle = INK; g.fillText(txt, 40, H / 2 + 2);
     this.labelTex.needsUpdate = true;
@@ -217,7 +220,8 @@ export class FieldFloor {
       this.active = tileNow;
       if (this.screen) { this.SU.uEffect.value = tileNow; this.drawLabel(tileNow); }
       const first = !this.seen.has(tileNow); this.seen.add(tileNow);
-      change = { i: tileNow, name: FIELD_EFFECTS[tileNow], first };
+      // GB3: `first` stays false (the old "one of Field's 9 effects" sentence is retired); `html` is the toast in the one format
+      change = { i: tileNow, name: FIELD_EFFECTS[tileNow], first: false, html: `<b>${FIELD_EFFECTS[tileNow]}</b> · ${tileNow + 1}/${FIELD_EFFECTS.length} on this floor` };
     }
     if (this.screen) this.SU.uMix.value = THREE.MathUtils.damp(this.SU.uMix.value, onFloor && this.active >= 0 ? 1 : 0, 5, dt);
     if (!onFloor) this.active = -1;
@@ -227,16 +231,16 @@ export class FieldFloor {
 
 /* ======================================================================= Vending */
 const PROMPTS = [
-  ["a bakery that only sells croissants", "Flake & Co.", "Fresh flakes, every morning.", "#FFC845", "#3D1F2B"],
-  ["a portfolio for a cat photographer", "Whisker Lens", "Portraits with attitude.", "#B9A2F2", "#1E1E2E"],
-  ["a band that only plays in lifts", "Going Up", "Live on every floor.", "#FF7A62", "#1E1F26"],
-  ["a library for lost socks", "Odd Sock Archive", "Every single one, catalogued.", "#7ED6B2", "#1B3A5C"],
-  ["a weather app for moles", "Underground", "Damp, with a chance of worms.", "#C9A0F5", "#2D1B3D"],
-  ["a travel agency for the moon", "Lunar Holidays", "Low gravity, high spirits.", "#82C4F0", "#1B3A5C"],
-  ["a gym for houseplants", "Leaf Day", "Photosynthesise harder.", "#96E6B3", "#2D6B4F"],
-  ["a bank run by squirrels", "Acorn Savings", "We bury it for you.", "#FFA070", "#3D1F2B"],
-  ["a museum of tiny chairs", "Little Seats", "Please do not sit.", "#FFCCE8", "#3D1F2B"],
-  ["a cinema that only shows sunsets", "Golden Hour", "Showing nightly, roughly 7pm.", "#FFB98C", "#3A2F6B"],
+  ["a bakery that only sells croissants", "Flake & Co.", "Flaky by design.", "#FFC845", "#3D1F2B"],
+  ["a portfolio for a cat photographer", "Whisker Lens", "Sit. Stay. Judge.", "#B9A2F2", "#1E1E2E"],
+  ["a band that only plays in lifts", "Going Up", "Elevator music with ambitions.", "#FF7A62", "#1E1F26"],
+  ["a library for lost socks", "Odd Sock Archive", "Your other half is in here somewhere.", "#7ED6B2", "#1B3A5C"],
+  ["a weather app for moles", "Underground", "Today: damp. Tomorrow: also damp.", "#C9A0F5", "#2D1B3D"],
+  ["a travel agency for the moon", "Lunar Holidays", "Come for the craters. Stay for the bounce.", "#82C4F0", "#1B3A5C"],
+  ["a gym for houseplants", "Leaf Day", "No pain. All gain. Some rain.", "#96E6B3", "#2D6B4F"],
+  ["a bank run by squirrels", "Acorn Savings", "Your savings are in a very safe hole.", "#FFA070", "#3D1F2B"],
+  ["a museum of tiny chairs", "Little Seats", "Look with your eyes. Not your bottom.", "#FFCCE8", "#3D1F2B"],
+  ["a cinema that only shows sunsets", "Golden Hour", "Every evening. Weather permitting.", "#FFB98C", "#3A2F6B"],
 ];
 /* drawn in a 480 x 640 layout, scaled up to the canvas's real size */
 function drawCard(cv, p, n) {
@@ -258,9 +262,11 @@ function drawCard(cv, p, n) {
   g.save(); g.beginPath(); g.roundRect(42, top + 40, bw - 12, bh - 46, [0, 0, 18, 18]); g.clip();
   g.fillStyle = accent; g.fillRect(42, top + 40, bw - 12, bh - 46);
   g.fillStyle = ink; g.font = `700 26px ${HEAD}`; g.fillText(title, 64, top + 86);
-  g.font = `800 50px ${HEAD}`;
-  const tw = tag.split(" "); let tl = "", ty = top + 150;
-  for (const w of tw) { if (g.measureText(tl + w).width > bw - 70) { g.fillText(tl, 64, ty); tl = ""; ty += 54; } tl += w + " "; }
+  const tw = tag.split(" "), wrapN = px => { g.font = `800 ${px}px ${HEAD}`; let n = 1, l = ""; for (const w of tw) { if (g.measureText(l + w).width > bw - 70) { n++; l = ""; } l += w + " "; } return n; };
+  const tpx = wrapN(50) > 3 ? 40 : 50, tlh = tpx === 50 ? 54 : 44;
+  g.font = `800 ${tpx}px ${HEAD}`;
+  let tl = "", ty = top + 150;
+  for (const w of tw) { if (g.measureText(tl + w).width > bw - 70) { g.fillText(tl, 64, ty); tl = ""; ty += tlh; } tl += w + " "; }
   g.fillText(tl, 64, ty);
   g.fillStyle = ink; g.beginPath(); g.roundRect(64, ty + 28, 170, 50, 25); g.fill();
   g.fillStyle = accent; g.font = `700 22px ${BODY}`; g.fillText("Get started", 86, ty + 61);
@@ -396,8 +402,10 @@ export class Vending {
   drawSign() {
     const g = this.signCanvas.getContext("2d"), W = 512, H = 88;
     g.fillStyle = INK; g.fillRect(0, 0, W, H);
-    g.fillStyle = "#FFC845"; g.font = '800 50px "Bricolage Grotesque", system-ui, sans-serif'; g.textAlign = "center"; g.textBaseline = "middle";
-    g.fillText("PROMPT → SITE", W / 2, H / 2 + 3);
+    g.fillStyle = "#FFC845"; g.textAlign = "center"; g.textBaseline = "middle";
+    const sign = "IDEA IN → WEBSITE OUT"; let px = 50;
+    do { g.font = `800 ${px}px "Bricolage Grotesque", system-ui, sans-serif`; px -= 2; } while (g.measureText(sign).width > W - 40 && px > 24);
+    g.fillText(sign, W / 2, H / 2 + 3);
     this.signTex.needsUpdate = true;
   }
   /* pull the lever; returns the toast text */

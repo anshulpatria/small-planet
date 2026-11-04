@@ -176,7 +176,7 @@ export class Booth {
     x.strokeStyle = "#3A2F6B"; x.lineWidth = 1.5; rr(m + 0.75, m + 0.75, pw - 1.5, ph - 1.5, 4); x.stroke();
     x.textBaseline = "alphabetic"; x.textAlign = "left";
     x.fillStyle = "#1E1F26"; x.font = '700 64px "Bricolage Grotesque"'; x.fillText("Small Planet", m, m + ph + 100);
-    x.fillStyle = "#6A5F7E"; x.font = '500 30px "Instrument Sans"'; x.fillText("Blip says hi", m + 2, m + ph + 150);
+    x.fillStyle = "#6A5F7E"; x.font = '500 30px "Instrument Sans"'; x.fillText("Wish you were weird", m + 2, m + ph + 150);
     return c;
   }
   async download() {

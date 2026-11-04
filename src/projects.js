@@ -1,70 +1,76 @@
 /* The nine projects, copied from the PROJECTS array on anshulpatria.github.io
-   (names, myths, descriptions, type and input are the site's own words).
+   (names, descriptions, type and input are the site's own words; the myths were rewritten for the game, 2026-11-04).
    `tech` lists only what was verified in each project's shipped source.
    `island` names the GLB the project lives in; satellites share one plinth asset. */
 
 export const PROJECTS = [
   { id: "pin-art", ord: "II", glyph: "eye", island: "pin-art", status: "built",
     name: "Pin Art 3D", type: "Toy", input: "Orbit",
-    myth: "It holds whatever you press into it.",
+    myth: "Make an impression. Literally.",
     desc: "A pinscreen driven by depth. Push the pins by hand or imprint a photograph, then relight it and orbit around.",
     tech: ["three.js", "InstancedMesh"],
     url: "https://anshulpatria.github.io/3D-pin-art/", shot: "assets/shots/pin-art-3d.jpg",
-    verb: "Push the pins" },
+    verb: "Poke the pins" },
 
   { id: "gravity-pong", ord: "I", glyph: "lotus", island: "gravity-pong", status: "blockout",
     name: "Gravity Pong", type: "Game", input: "Keys",
-    myth: "You meant to leave an hour ago.",
+    myth: "One more round. Famous last words.",
     desc: "Pong with gravity wells in the court. Power shots, magnets, one or two players.",
     tech: ["Canvas 2D", "JavaScript"],
     url: "https://anshulpatria.github.io/gravitypong/", shot: "assets/shots/gravity-pong.jpg",
-    verb: "Curve a shot" },
+    verb: "Bend a shot" },
 
   { id: "brand-studio", ord: "III", glyph: "pig", island: "brand-studio", status: "blockout",
     name: "Brand Studio", type: "Tool", input: "Drag",
-    myth: "Marks that move until you stop them.",
+    myth: "A logo that refuses to sit still.",
     desc: "Builds whole identity systems out of a metaball grid. Custom SVG and canvas renderers, exporting stills and video.",
     tech: ["SVG", "Canvas 2D"],
     url: "https://anshulpatria.github.io/brandstudio/", shot: "assets/shots/brand-studio.jpg",
-    verb: "Match the mark" },
+    verb: "Make the mark" },
 
   { id: "engraver", ord: "VIII", glyph: "raft", island: "engraver", status: "blockout",
     name: "Engraver", type: "Tool", input: "Upload",
-    myth: "Underneath, it was always lines.",
+    myth: "It was lines all along.",
     desc: "Redraws any image as a grid of strokes. Set the density and the contrast, then export it as SVG, PNG or WebM.",
     tech: ["Canvas 2D", "SVG", "MediaRecorder"],
     url: "https://anshulpatria.github.io/linevisualiser/", shot: "assets/shots/line-visualizer.jpg",
-    verb: "Turn the dial" },
+    verb: "Reveal the picture" },
 
   { id: "field", ord: "IV", glyph: "song", island: "satellite", status: "satellite",
     name: "Field", type: "Catalog", input: "Hover",
-    myth: "Pick one. Then pick another.",
+    myth: "A rabbit hole with a cursor.",
     desc: "Twenty generative effects that follow the cursor. Open a tile, read how it works, turn the parameters, take the code.",
-    url: "https://field-8yc.pages.dev/", shot: "assets/shots/field.jpg", verb: "Look closer" },
+    url: "https://field-8yc.pages.dev/", shot: "assets/shots/field.jpg", verb: "Take a peek" },
 
   { id: "genai-after-hours", ord: "V", glyph: "bottle", island: "satellite", status: "satellite",
     name: "GenAI After Hours", type: "Deck", input: "Arrows",
-    myth: "Ninety minutes, not seven years.",
+    myth: "A website before your coffee gets cold.",
     desc: "Slides from a ninety minute session on building microsites with AI tools.",
-    url: "https://anshulpatria.github.io/genaiafterhourspub/", shot: "assets/shots/genai-after-hours.jpg", verb: "Look closer" },
+    url: "https://anshulpatria.github.io/genaiafterhourspub/", shot: "assets/shots/genai-after-hours.jpg", verb: "Take a peek" },
 
   { id: "orchestrator", ord: "VI", glyph: "wave", island: "satellite", status: "satellite",
     name: "Orchestrator", type: "Video", input: "Watch",
-    myth: "Agentic workflows, from scratch.",
+    myth: "Agents, action, and a suspiciously short deadline.",
     desc: "A generated film, assembled in under sixteen hours of prompting with Magnific.",
-    url: "https://youtu.be/oySlLRl5EBI", shot: "assets/shots/orchestrator.jpg", verb: "Look closer" },
+    url: "https://youtu.be/oySlLRl5EBI", shot: "assets/shots/orchestrator.jpg", verb: "Take a peek" },
 
   { id: "the-bracket", ord: "VII", glyph: "bracket", island: "satellite", status: "satellite",
     name: "The bracket does it again", type: "Video", input: "Watch",
-    myth: "Nobody remembers the third bullet.",
+    myth: "The third bullet has gone missing. Again.",
     desc: "A short film for the Live Slides training, on finding the story already sitting inside the most ordinary deck in the building.",
-    url: "https://youtu.be/M1nIsHUE6dg", shot: "assets/shots/live-slides.jpg", verb: "Look closer" },
+    url: "https://youtu.be/M1nIsHUE6dg", shot: "assets/shots/live-slides.jpg", verb: "Take a peek" },
 
   { id: "artboard-42", ord: "IX", glyph: "throne", island: "satellite", status: "satellite",
-    name: "Artboard 42", type: "Site", input: "Scroll",
-    myth: "Home.",
-    desc: "The main portfolio.",
-    url: "https://www.artboard42.com", shot: "assets/shots/artboard-42.jpg", verb: "Look closer" },
+    name: "GitHub Portfolio", type: "Site", input: "Scroll",
+    myth: "The mothership, minus the moth.",
+    desc: "Tools, toys, games, workshop decks.",
+    url: "https://anshulpatria.github.io", shot: "assets/shots/portfolio-home-v3.jpg", verb: "Take a peek" },
+
+  { id: "sea-ai-maturity", ord: "X", glyph: "hex", island: "satellite", status: "satellite",
+    name: "AI Momentum to Value", type: "Report", input: "Explore",
+    myth: "Five moves. Zero patience for pilot purgatory.",
+    desc: "A hexagon-based interactive report for Google on Southeast Asia's path from AI momentum to value: 5 strategic moves for enterprises.",
+    url: "https://sea-ai-maturity.bcg.com/", shot: "assets/shots/sea-ai-maturity.jpg", verb: "Take a peek" },
 ];
 
 export const byId = Object.fromEntries(PROJECTS.map(p => [p.id, p]));

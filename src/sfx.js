@@ -343,6 +343,13 @@ export function synth(name, sr = 48000, o = {}) {
 // bank (web/assets/audio/foley.json + foley.m4a, packed by audio-src/foley/pack-foley.py, each slice peak-normalised to
 // PEAK[name] so the budget is unchanged; foley.steps holds three variants per surface at stepPeak = PEAK.step). Loaded once through amb._onLoad (unmuted load chain); until it is decoded,
 // or if it fails, the synthesised versions below play. star / butterfly / trampoline stay on the piano sprite.
+/* GB1 (Engraver dial): warmer/colder detent tick. Closeness 0..1 maps to a playback rate (pitch AND brightness of the
+   recorded slice), a low-pass cutoff and a level, all strictly increasing, so the tick climbs as the dial nears the answer.
+   Pure, so the offline render in the evidence uses this very function. Recorded foley slice only; no oscillator. */
+export function tickParams(closeness) {
+  const c = Math.max(0, Math.min(1, +closeness || 0));
+  return { rate: 0.7 + 1.0 * c, cutoff: 700 * Math.pow(10, c), gain: 0.3 + 0.7 * c };   // 0.70..1.70, 700 Hz..7 kHz, 0.3..1.0
+}
 const FOLEY_URL = new URL('../assets/audio/foley.json', import.meta.url);
 const FOLEY_NAMES = { jump: 1, land: 1, cannon_wind: 1, cannon_fire: 1, shutter: 1 };
 export function createSfx(amb) {
@@ -456,8 +463,37 @@ export function createSfx(amb) {
     } catch (_) { return false; }
   }
 
+
+  /* GB1: one detent tick from the recorded 'land' knock (foley sprite), shaped by tickParams(closeness).
+     Returns the params used (or null when nothing sounded). Own 35 ms gap; shares the voice cap and peak budget. */
+  let lastTick = -1;
+  function tick(closeness) {
+    try {
+      const ctx = amb && amb.ctx;
+      if (!ctx || !amb.out || amb.muted || ctx.state !== 'running' || foleyState !== 'ready' || !foley.slices.land) return null;
+      const now = ctx.currentTime; if (now - lastTick < 0.035) return null; lastTick = now;
+      const P = tickParams(closeness), sl = foley.slices.land, out = ensureBus(ctx);
+      if (!out) return null;
+      const want = (+sl.peak || 0.5) * P.gain * BUS_GAIN;
+      const k = shared() ? amb._budget(now, want) : 1;
+      if (k === 0) return null;
+      const src = ctx.createBufferSource(); src.buffer = foleyBuf; src.playbackRate.value = P.rate;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = P.cutoff; lp.Q.value = 0.5;
+      const g = ctx.createGain(); g.gain.value = P.gain * k;
+      if (typeof amb._noteNodes === 'function') amb._noteNodes(3);
+      src.connect(lp); lp.connect(g); g.connect(out);
+      src.start(now, +sl.start + (+foley.decoderOffsetSamples || 0) / (+foley.sampleRate || 48000), +sl.dur);
+      const v = { src, t0: now, end: now + (+sl.dur) / P.rate + 0.05, peak: want * k, kind: 'tick',
+        stop() { try { src.stop(); } catch (_) { } v.end = 0; } };
+      src.onended = () => { try { g.disconnect(); lp.disconnect(); } catch (_) { } v.end = 0; };
+      if (shared()) amb._claimVoice(v);
+      return P;
+    } catch (_) { return null; }
+  }
+
   return {
     play,
+    tick,
     step(surface) { return play('step', { surface }); },
     get names() { return SFX_NAMES.slice(); },
     get foleyState() { return foleyState; },

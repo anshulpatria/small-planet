@@ -8,6 +8,11 @@ const Y_AXIS = new THREE.Vector3(0, 1, 0);
 export const TOL = 0.1;        // radians: "close enough" to the target angle
 export const RANGE = 2.4;      // radians: beyond this the strokes are fully scrambled
 const HOLD = 0.4;       // seconds inside TOL before the picture snaps
+/* GB1: warmer / colder. The dial has 36 detents (the 36 printed ticks). Each detent it crosses makes one recorded foley knock whose
+   pitch, brightness and level rise with closeness = focusAmount(error) (sfx.tick / tickParams); the ring of ticks lights up
+   in signal blue by the same closeness; inside tolerance the ring is full and, once the picture snaps, a distinct lock cue plays ONCE. */
+const DETENTS = 36;
+const DET = TAU / DETENTS;
 
 function wrapPi(a) { a = (a + Math.PI) % TAU; if (a < 0) a += TAU; return a - Math.PI; }
 export function angleError(a, b) { return Math.abs(wrapPi(a - b)); }
@@ -173,6 +178,7 @@ export default class Engraver {
     this.cols_ = g0.cols; this.rows_ = g0.rows;
     this.target = 2.3;              // the secret angle
     this.dialIn = 0; this.dialVis = 0; this.fT = 0; this.f = 0; this.fPrev = -1;
+    this.lastDet = null; this.cl = 0; this.pulse = 0; this.litN = -1; this.snapped = false;
     this.hold = 0; this.free = false; this.dragging = false; this.lastPsi = 0;
     this.focused = false; this.dirty = true; this.t = 0;
     this._sig = new THREE.Color(this.cols.signal); this._ink = new THREE.Color(this.cols.ink);
@@ -203,6 +209,13 @@ export default class Engraver {
       d.scale.set(1, i % 9 === 0 ? 1.8 : 1, 1);
       d.updateMatrix(); this.ticks.setMatrixAt(i, d.matrix);
     }
+    this._tickD = d.clone(); this._tickBase = [];
+    for (let i = 0; i < 36; i++) { this.ticks.getMatrixAt(i, this._tickD.matrix); this._tickBase.push(this._tickD.matrix.clone()); }
+    this._cOff = new THREE.Color("#ffffff");
+    // lit tick = signal blue once multiplied by the paper material colour
+    const pap = new THREE.Color(this.cols.paper);
+    this._cOn = new THREE.Color(Math.min(1, this._sigRGB().r / Math.max(0.05, pap.r)), Math.min(1, this._sigRGB().g / Math.max(0.05, pap.g)), Math.min(1, this._sigRGB().b / Math.max(0.05, pap.b)));
+    for (let i = 0; i < 36; i++) this.ticks.setColorAt(i, this._cOff);
     this.ticks.castShadow = false; this.tilt.add(this.ticks);
     // knob
     this.knob = new THREE.Group(); this.knob.position.y = 0.01; this.tilt.add(this.knob);
@@ -220,6 +233,23 @@ export default class Engraver {
       d.position.set(Math.cos(a) * 0.64, 0.158, -Math.sin(a) * 0.64); d.updateMatrix(); this.studs.setMatrixAt(i, d.matrix);
     }
     this.knob.add(this.studs);
+  }
+
+  _sigRGB() { return this._sg || (this._sg = new THREE.Color(this.cols.signal)); }
+  /* GB1: the sfx engine (main.js does not hand it to games, so read it from the page's hook; ctx.sfx wins if a host adds it) */
+  _sfx() { return this.ctx.sfx || (globalThis.__archipelago && globalThis.__archipelago.ui && globalThis.__archipelago.ui.sfx) || null; }
+  /* GB1: light `n` of the 36 ticks (growing the lit ones a little), only when the count changes */
+  lightTicks(n) {
+    if (n === this.litN) return;
+    this.litN = n;
+    const m = new THREE.Matrix4(), sc = new THREE.Matrix4();
+    for (let i = 0; i < DETENTS; i++) {
+      const on = i < n;
+      this.ticks.setColorAt(i, on ? this._cOn : this._cOff);
+      sc.makeScale(1, on ? 1.5 : 1, on ? 1.5 : 1);
+      this.ticks.setMatrixAt(i, m.copy(this._tickBase[i]).multiply(sc));
+    }
+    this.ticks.instanceColor.needsUpdate = true; this.ticks.instanceMatrix.needsUpdate = true;
   }
 
   /* ------------------------------------------------------- image sources */
@@ -299,13 +329,13 @@ export default class Engraver {
 
   pushUi() {
     if (!this.free) {
-      this.ctx.ui.status("Turn the dial until the picture appears");
+      this.ctx.ui.status("Turn the dial. There’s a picture hiding in those lines.");
       this.ctx.ui.tools([
         { label: "− Turn", onClick: () => { this.dialIn -= 0.35; } },
         { label: "Turn +", onClick: () => { this.dialIn += 0.35; } },
       ]);
     } else {
-      this.ctx.ui.status("Pick a picture and a density");
+      this.ctx.ui.status("Choose a picture. Then decide how many lines is too many.");
       const tools = [];
       for (const k of Object.keys(SOURCES)) tools.push({ label: SOURCES[k].label, group: "src", pressed: this.source === k, onClick: () => this.setSource(k) });
       tools.push({ label: "Fine", group: "den", pressed: this.density === "fine", onClick: () => this.setDensity("fine") });
@@ -345,11 +375,21 @@ export default class Engraver {
     this.knob.rotation.y = this.dialVis;
     const err = angleError(this.dialVis, this.target);
     this.fT = focusAmount(err);
+    // GB1: one detent tick per 10 degrees crossed, warmer (higher, brighter, louder) the closer to the answer
+    const det = Math.floor(this.dialVis / DET);
+    if (this.lastDet === null) this.lastDet = det;
+    else if (det !== this.lastDet) { this.lastDet = det; if (focused) { const sf = this._sfx(); if (sf && sf.tick) sf.tick(this.fT); } }
+    this.cl += (this.fT - this.cl) * (1 - Math.exp(-14 * dt));
+    this.lightTicks(this.snapped ? DETENTS : Math.round(Math.min(1, this.cl) * DETENTS));
+    this.pulse *= Math.exp(-7 * dt);
+    this.knob.scale.setScalar(1 + 0.08 * this.pulse);
     // solve: hold inside tolerance, then snap the dial onto the exact angle
     if (err < TOL) {
       this.hold += dt;
       if (this.hold > HOLD && !this.snapped) {
         this.snapped = true;
+        this.pulse = 1; this.lightTicks(DETENTS);   // GB1: the lock cue (a click plus the piano chord), once per lock, and a pop on the knob
+        { const sf = this._sfx(); if (sf) { sf.play("shutter"); sf.play("star", { gain: 1.4 }); } }
         this.dialIn = this.dialVis + wrapPi(this.target - this.dialVis);
         if (!this.free) { this.free = true; this.pushUi(); this.ctx.solved(); }
       }

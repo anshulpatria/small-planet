@@ -2,7 +2,7 @@
 :root{
   --paper:#E4E5E0; --paper-2:#EDEEEA; --plate:#FFFFFF;
   --ink:#16171A; --ink-soft:#6E706C; --signal:#2B2BEE; --rule:#C9CAC3;
-  --glass:rgba(250,250,247,.72); --glass-edge:rgba(255,255,255,.7);
+  --glass:rgba(250,250,247,.72);
   --shadow:0 18px 50px -18px rgba(22,23,26,.35), 0 2px 6px rgba(22,23,26,.08);
   --f-display:"Bricolage Grotesque", system-ui, sans-serif;
   --f-body:"Instrument Sans", system-ui, sans-serif;
@@ -23,15 +23,8 @@ kbd{white-space:nowrap;font-family:var(--f-body);font-size:11px;font-weight:600;
 .btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:13px 22px;font-weight:600;font-size:15px;text-decoration:none;transition:transform .3s var(--ease), background .2s, opacity .2s}
 .btn:hover{transform:translateY(-1px)}
 .btn:disabled{opacity:.35;cursor:progress;transform:none}
-.btn-primary{background:var(--ink);color:var(--paper)}
-.btn-primary:hover{background:var(--signal)}
 .btn-ghost{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink)}
 .chip{white-space:nowrap;flex:none;border:0;border-radius:999px;padding:9px 14px;font-size:13px;font-weight:600;background:var(--plate);display:inline-flex;align-items:center;gap:8px}
-.chip[aria-pressed="true"]{background:var(--signal);color:#fff}
-.chip-ink{background:var(--ink);color:var(--paper)}
-.chip-ink kbd{background:var(--paper);color:var(--ink)}
-.icon-btn{width:42px;height:42px;border-radius:999px;border:0;display:grid;place-items:center;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow)}
-.icon-btn svg{width:20px;height:20px}
 
 /* ---------- intro */
 .intro{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:var(--gut);
@@ -61,7 +54,7 @@ kbd{white-space:nowrap;font-family:var(--f-body);font-size:11px;font-weight:600;
    with a hard darker band along the bottom (an inset shadow, no gradient), a thick ink outline and a
    hard ink drop that the button presses down into. Keyboard focus (html.kbd, set on Tab in index.html)
    thickens the ink outline and lifts the button; mouse, touch and the focus() on load show nothing */
-:root{--cel-blue:#3B3BF2;--cel-blue-hi:#7D7DFF;--cel-blue-lo:#1F1FB4;--cel-grey:#E6E7E2;--cel-grey-lo:#BABCB3}
+:root{--cel-blue:#3B3BF2;--cel-blue-lo:#1F1FB4;--cel-grey:#E6E7E2;--cel-grey-lo:#BABCB3}
 .btn-cel{--c:var(--cel-blue);--lo:var(--cel-blue-lo);
   display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 24px 15px;border:3px solid var(--ink);border-radius:16px;
   background:var(--c);color:#fff;font:700 16px/1.1 var(--f-body);letter-spacing:.005em;text-decoration:none;text-shadow:0 2px 0 var(--lo);
@@ -77,95 +70,6 @@ html.kbd .btn-cel:not(:disabled):focus-visible{transform:translate(-1px,-2px);bo
   .intro-actions{gap:14px}
   .intro-actions .btn-cel{padding:12px 17px 14px;font-size:15px;border-radius:14px}
 }
-
-/* ---------- HUD */
-.hud-top{position:fixed;z-index:10;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:var(--gut);pointer-events:none}
-.hud-top > *{pointer-events:auto}
-.wordmark{font-family:var(--f-display);font-weight:700;font-size:20px;letter-spacing:-.02em;text-decoration:none;
-  /* a paper halo keeps the dark wordmark legible over dark 3D (screen bezels); invisible on the pale sky */
-  text-shadow:0 0 2px rgba(228,229,224,.9),0 0 8px rgba(228,229,224,.75)}
-.hud-right{display:flex;gap:10px;align-items:center}
-.seg{display:flex;padding:4px;border-radius:999px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow)}
-.seg button{border:0;background:transparent;border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;color:var(--ink-soft);white-space:nowrap}
-.seg button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
-.hud-bottom{position:fixed;z-index:10;left:0;bottom:0;padding:var(--gut);pointer-events:none}
-.progress{display:grid;grid-template-columns:auto auto;gap:4px 14px;align-items:baseline;padding:14px 16px;border-radius:var(--r);background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow)}
-.progress-label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
-.progress-count{font-family:var(--f-display);font-size:18px;font-weight:600;text-align:right}
-.progress-count b{font-weight:700}
-/* projects discovered: each glyph is a button that takes you to its project */
-.progress{pointer-events:auto}
-.glyphs{grid-column:1/-1;display:flex;gap:4px;margin:6px 0 0;padding:0;list-style:none}
-/* not found yet: dashed tile, a near-ink stroke (#33352F; the antialiased 1.6 px line is what the
-   eye sees, so the flat colour is set well past 3:1 on the cream glass); found: solid lavender
-   tile, signal blue, heavier stroke, a dot */
-.glyph{position:relative;width:30px;height:30px;padding:0;border:1.5px dashed #9C9E98;border-radius:10px;display:grid;place-items:center;background:transparent;
-  color:#33352F;transition:transform .25s var(--ease), background .2s, box-shadow .2s, color .2s;-webkit-tap-highlight-color:transparent}
-.glyph svg{width:18px;height:18px;stroke-width:1.6;transition:opacity .2s, transform .6s var(--ease)}
-.glyph.on{background:#DADBFF;border-color:transparent;box-shadow:none;color:var(--signal)}
-.glyph.on svg{opacity:1;stroke-width:1.9}
-.glyph.on::after{content:"";position:absolute;right:3px;top:3px;width:5px;height:5px;border-radius:50%;background:var(--signal)}
-.glyph.tip,.glyph:focus-visible{transform:translateY(-2px);background:var(--plate);border:1.5px solid var(--ink);color:var(--ink)}
-@media (hover:hover){.glyph:hover{transform:translateY(-2px);background:var(--plate);border:1.5px solid var(--ink);color:var(--ink)}}
-.glyph.on.tip,.glyph.on:focus-visible{background:var(--signal);border-color:transparent;color:#fff}
-.glyph.on.tip::after,.glyph.on:focus-visible::after{background:#fff}
-@media (hover:hover){.glyph.on:hover{background:var(--signal);border-color:transparent;color:#fff}.glyph.on:hover::after{background:#fff}}
-.glyph:focus{outline:none}
-.glyph:focus-visible{outline:2.5px solid var(--signal);outline-offset:2px}
-.glyph.pop svg{transform:scale(1.5)}
-/* tooltips sit above the whole panel, so they never cover its "Projects discovered" label: ui.js
-   (placeTip) measures the glyph against the panel and sets --tb (glyph top to panel top), --tx (left,
-   clamped inside the panel's width, so it stays on-screen at 375 px) and --ax (arrow over the glyph) */
-.glyph-tip{position:absolute;left:var(--tx,0px);bottom:calc(100% + var(--tb,0px) + 10px);transform:translateY(4px);padding:7px 11px 8px;border-radius:12px;background:var(--ink);color:var(--paper);
-  font:600 13px/1.15 var(--f-body);white-space:nowrap;text-align:left;pointer-events:none;opacity:0;transition:opacity .18s, transform .25s var(--ease);box-shadow:var(--shadow);z-index:2}
-.glyph-tip::after{content:"";position:absolute;left:var(--ax,20px);top:100%;margin-left:-6px;border:6px solid transparent;border-top-color:var(--ink)}
-.glyph-tip b{display:block;font:700 15px/1.1 var(--f-display);letter-spacing:-.01em}
-.glyph-tip small{display:block;margin-top:3px;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:#B9BAB5}
-.glyph.on .glyph-tip small{color:#AFAFFF}
-.glyph:focus-visible .glyph-tip,.glyph.tip .glyph-tip{opacity:1;transform:none}
-@media (hover:hover){.glyph:hover .glyph-tip{opacity:1;transform:none}}
-.progress-cta{grid-column:1/-1;margin:8px 0 0;display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--signal)}
-.progress-cta svg{width:14px;height:14px;stroke-width:2}
-.progress:hover .progress-cta svg{transform:translateX(2px)}
-.progress-cta svg{transition:transform .3s var(--ease)}
-
-/* goal: a lightbulb in the top bar opens it; never shown on its own */
-.goal-btn{position:relative}
-/* sound toggle: the speaker loses its waves and gains a cross when muted */
-.sound-btn .snd-off, .sound-btn.is-muted .snd-on{display:none}
-.sound-btn.is-muted .snd-off{display:inline}
-.sound-btn.is-muted{color:var(--ink-soft)}
-.goal-btn[aria-expanded="true"]{background:var(--ink);color:var(--paper)}
-.goal-btn:focus-visible,.icon-btn:focus-visible{outline:2.5px solid var(--signal);outline-offset:2px}
-.goal-btn.pulse::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 0 rgba(43,43,238,.55);animation:goalPulse 1.4s var(--ease) 2}
-@keyframes goalPulse{to{box-shadow:0 0 0 12px rgba(43,43,238,0)}}
-.goal{position:fixed;z-index:13;top:calc(var(--gut) + 54px);right:var(--gut);width:min(340px,calc(100vw - 2 * var(--gut)));padding:14px 46px 16px 16px;border-radius:var(--r);
-  background:var(--plate);box-shadow:var(--shadow);animation:goalIn .3s var(--ease)}
-.goal::before{content:"";position:absolute;bottom:100%;right:66px;border:7px solid transparent;border-bottom-color:var(--plate)}
-.goal-head{margin:0 0 4px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
-.goal-text{margin:0;font:600 17px/1.3 var(--f-display);letter-spacing:-.01em;text-wrap:pretty}
-.goal-text b{color:var(--signal)}
-.goal-close{position:absolute;top:8px;right:8px;width:32px;height:32px;border:0;border-radius:999px;background:var(--paper-2);display:grid;place-items:center}
-.goal-close:hover{background:var(--rule)}
-.goal-close:focus-visible{outline:2.5px solid var(--signal);outline-offset:2px}
-.goal-close svg{width:16px;height:16px}
-@keyframes goalIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
-body.focus .goal, body.focus .goal-btn{display:none}
-/* a showing tooltip rises above the prompt and the controls hint that share the bottom edge */
-.hud-bottom:has(.glyph:is(.tip,:hover,:focus-visible)){z-index:13}
-/* one popover at a time: while a glyph's name shows, the controls hint and the prompt step aside */
-body:has(.glyph:is(.tip,:focus-visible)) :is(.hint,.prompt){opacity:0 !important;visibility:hidden}
-@media (hover:hover){body:has(.glyph:hover) :is(.hint,.prompt){opacity:0 !important;visibility:hidden}}
-body.is-loading .hud-top, body.is-loading .hud-bottom{opacity:0}
-.hud-top,.hud-bottom{transition:opacity .8s var(--ease)}
-body.focus .hud-bottom, body.focus .hud-top .seg{opacity:0;pointer-events:none}
-
-.hint{position:fixed;z-index:11;left:50%;bottom:calc(var(--gut) + 6px);transform:translate(-50%,0);padding:12px 18px;border-radius:999px;background:var(--ink);color:var(--paper);font-size:13px;display:flex;gap:14px;align-items:center;white-space:nowrap;opacity:0;transition:opacity .6s var(--ease), transform .6s var(--ease);pointer-events:none}
-.hint.show{opacity:1;transform:translate(-50%,-6px)}
-.hint kbd{background:var(--paper);color:var(--ink)}
-.prompt{position:fixed;z-index:12;left:50%;bottom:calc(var(--gut) + 64px);transform:translateX(-50%);border:0;border-radius:999px;padding:10px 18px 10px 10px;background:var(--plate);box-shadow:var(--shadow);display:flex;gap:10px;align-items:center;font-weight:600;font-size:14px;animation:rise .45s var(--ease)}
-.prompt kbd{background:var(--signal);color:#fff;padding:6px 8px;font-size:12px}
-@keyframes rise{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
 .toast{position:fixed;z-index:12;left:50%;top:calc(var(--gut) + 64px);transform:translate(-50%,-8px);padding:12px 20px;border-radius:22px;background:var(--signal);color:#fff;font-size:14px;font-weight:500;line-height:1.4;text-align:center;width:max-content;max-width:min(560px,calc(100vw - 32px));opacity:0;transition:opacity .5s var(--ease), transform .5s var(--ease);pointer-events:none}
 .toast b{font-weight:700}
 .toast svg{width:18px;height:18px;vertical-align:-4px;margin-right:8px}
@@ -175,7 +79,6 @@ body.focus .hud-bottom, body.focus .hud-top .seg{opacity:0;pointer-events:none}
 @media (min-width:900px){
   /* with the panel open, the world's centre moves left (camera view offset) and so does the bar */
   body.panel-open .focusbar{left:calc((100vw - min(400px, 100vw) - var(--gut)) / 2)}
-  body.panel-open .prompt{left:calc((100vw - min(400px, 100vw) - var(--gut)) / 2)}
 }
 .focusbar,.prompt{transition:left .7s var(--ease)}
 .focus-title{font-family:var(--f-display);font-weight:600;padding:0 10px;white-space:nowrap}
@@ -186,15 +89,11 @@ body.focus .hud-bottom, body.focus .hud-top .seg{opacity:0;pointer-events:none}
 /* touch has no Esc: the exit is a plain "Leave" with an x, never a key badge */
 body.touch #focusExit kbd, body.touch .prompt kbd{display:none}
 body.touch #focusExit .x{display:block}
-.prompt .tap-ico{display:none;width:26px;height:26px;border-radius:999px;background:var(--signal);color:#fff;place-items:center}
-.prompt .tap-ico svg{width:16px;height:16px;stroke-width:1.9}
-body.touch .prompt .tap-ico{display:grid}
 
 /* ---------- panel */
 .panel{position:fixed;z-index:20;top:var(--gut);right:var(--gut);bottom:var(--gut);width:min(400px, calc(100vw - 2 * var(--gut)));border-radius:var(--r);background:var(--paper-2);box-shadow:var(--shadow);overflow:auto;transform:translateX(calc(100% + 40px));transition:transform .7s var(--ease)}
 .panel.open{transform:none}
 .panel-close{position:absolute;top:12px;right:12px;width:38px;height:38px;border:0;border-radius:999px;background:var(--plate);display:grid;place-items:center;z-index:2}
-.panel-close svg{width:18px;height:18px}
 .panel-shot{margin:0;aspect-ratio:3/2;background:#101114;overflow:hidden}
 .panel-shot img{width:100%;height:100%;object-fit:cover;display:block}
 .panel-body{padding:22px 24px 28px}
@@ -208,22 +107,31 @@ body.touch .prompt .tap-ico{display:grid}
 /* ---------- map */
 .map{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:var(--gut);background:rgba(228,229,224,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;visibility:hidden;transition:opacity .45s var(--ease), visibility .45s}
 .map.open{opacity:1;visibility:visible}
-.map-card{position:relative;width:min(640px,100%);max-height:100%;overflow:auto;border-radius:var(--r);background:var(--paper-2);box-shadow:var(--shadow);padding:22px}
+.map-card{position:relative;width:min(1040px,100%);max-height:100%;overflow:auto;border-radius:var(--r);background:var(--paper-2);box-shadow:var(--shadow);padding:22px}
 .map-head h2{margin:0;font-family:var(--f-display);font-size:28px;letter-spacing:-.02em}
 .map-head p{margin:4px 0 0;font-size:14px;color:var(--ink-soft)}
-.map-svg{width:100%;aspect-ratio:1;margin-top:8px}
-.map-svg .isle{cursor:var(--cur-pt, pointer)}
-.map-svg .isle .body{fill:var(--plate);stroke:var(--ink);stroke-width:.6;transition:fill .2s}
-.map-svg .isle:hover .body,.map-svg .isle:focus .body{fill:#DADBFF}
-.map-svg .isle.found .body{fill:var(--signal);stroke:var(--signal)}
-.map-svg .isle.locked .body{fill:var(--paper);stroke-dasharray:2 1.5}
-.map-svg .isle.locked{cursor:not-allowed}
-.map-svg .lock{fill:none;stroke:var(--ink);stroke-width:.7}
-.map-svg .isle .hit{fill:transparent;stroke:none}
-.map-svg .isle text{font:600 6px var(--f-body);fill:var(--ink);stroke:none}
-.map-svg .bridge{stroke:var(--rule);stroke-width:1.2;stroke-dasharray:2 2}
-.map-svg .me{fill:var(--signal)}
-.map-svg .me-ring{fill:none;stroke:var(--signal);stroke-width:.6;opacity:.6}
+.map-stage{position:relative;width:100%;aspect-ratio:16/10;max-height:calc(100vh - 190px);margin-top:10px;border-radius:calc(var(--r) - 6px);overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,#FBF6EC 0%,#EFE6D6 100%)}
+.map-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.map-stage canvas:active{cursor:grabbing}
+.map-pins{position:absolute;inset:0;pointer-events:none}
+.map-pin{position:absolute;left:0;top:0;pointer-events:auto;font:600 12px/1 var(--f-body);padding:5px 10px 6px;border-radius:999px;background:#FBF8F1;color:var(--ink);border:1.5px solid var(--ink);box-shadow:0 2px 0 var(--ink);white-space:nowrap;transition:background .2s,color .2s,box-shadow .15s}
+.map-pin.hot,.map-pin:focus-visible{background:#DADBFF;outline:none;box-shadow:0 3px 0 var(--ink)}
+.map-pin.found{background:var(--signal);border-color:var(--ink);color:#fff}
+.map-pin.found.hot,.map-pin.found:focus-visible{background:#4747FF}
+.map-pin.locked{border-style:dashed;color:var(--ink-soft);cursor:not-allowed}
+.map-pin.locked::before{content:"";display:inline-block;width:8px;height:9px;margin-right:5px;vertical-align:-1px;border:1.5px solid currentColor;border-radius:2px 2px 1px 1px;box-sizing:border-box;border-top-width:4px}
+.map-pin.away{visibility:hidden}
+.map-face{position:absolute;left:14px;top:12px;margin:0;font:700 17px/1.1 var(--f-display);letter-spacing:-.01em;color:var(--ink);pointer-events:none}
+.map-flip{position:absolute;right:12px;bottom:12px;font:600 13px/1 var(--f-body);padding:8px 14px 9px;border-radius:999px;background:#FBF8F1;color:var(--ink);border:1.5px solid var(--ink);box-shadow:0 2px 0 var(--ink)}
+.map-flip::after{content:" \21BB";font-weight:700}
+.map-flip:hover,.map-flip:focus-visible{background:#DADBFF;outline:none}
+.map-stage.flat .map-face,.map-stage.flat .map-flip{display:none}
+.map-you{position:absolute;left:0;top:0;font:700 11px/1 var(--f-body);padding:4px 8px;border-radius:999px;background:var(--signal);color:#fff;border:1.5px solid var(--ink);pointer-events:none}
+@media (max-width:600px){.map-stage{aspect-ratio:1/1;max-height:calc(100vh - 170px)}.map-pin{font-size:10px;padding:3px 7px 4px;border-width:1.25px;box-shadow:0 1.5px 0 var(--ink)}.map-card{padding:16px}.map-face{font-size:14px;left:10px;top:8px}.map-flip{font-size:11px;padding:6px 10px 7px;right:8px;bottom:8px}}
+.map-stage.flat{aspect-ratio:auto;max-height:none;background:none}
+.map-stage.flat canvas,.map-stage.flat .map-you{display:none}
+.map-stage.flat .map-pins{position:static;display:flex;flex-wrap:wrap;gap:8px}
+.map-stage.flat .map-pin{position:static;transform:none!important}
 .map-legend{list-style:none;margin:6px 0 0;padding:0;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft)}
 .map-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;box-shadow:inset 0 0 0 1px var(--ink)}
 
@@ -245,51 +153,40 @@ body.touch .prompt .tap-ico{display:grid}
 .card .desc{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink-soft)}
 .card .found{color:var(--signal)}
 
-/* ---------- touch stick */
-.stick{position:fixed;z-index:11;left:calc(var(--gut) + 6px);bottom:calc(var(--gut) + 110px);width:112px;height:112px;border-radius:50%;background:rgba(250,250,247,.35);box-shadow:inset 0 0 0 1.5px rgba(22,23,26,.18);display:none;touch-action:none}
-.stick-knob{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:var(--plate);box-shadow:var(--shadow)}
+/* ======================================================================================================
+   TOUCH CONTROLS (track I, I2): the stick (bottom-left) and the interact button (bottom-right; jump is a centre tap).
+   Same size (--ctl-size) and the same Collector's-dock treatment as the HUD buttons: cream face, 3px ink outline, one
+   shade band, hard ink drop, no blur. They sit in the corner squares the HUD reserves (--ctl-inset / --ctl-bottom, see
+   the HUD block below); the dock, hint and prompt stay above them. Everything between them is the camera's: a drag orbits. */
+.stick,.act-btn{position:fixed;z-index:11;bottom:var(--ctl-bottom);width:var(--ctl-size);height:var(--ctl-size);box-sizing:border-box;border-radius:50%;
+  border:3px solid var(--cel-ink);background:var(--cream);color:var(--cel-ink);box-shadow:inset 0 -7px 0 var(--cream-lo),3px 5px 0 var(--cel-ink);
+  display:none;touch-action:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;padding:0}
+.stick{left:var(--ctl-inset)}
+.act-btn{right:max(16px, env(safe-area-inset-right, 0px));place-items:center}
+.stick-knob{position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-22px 0 0 -20px;border-radius:50%;box-sizing:border-box;
+  border:3px solid var(--cel-ink);background:#FFFDF6;box-shadow:inset 0 -5px 0 var(--cream-lo),0 2px 0 var(--cel-ink);transition:transform .14s var(--ease)}
+.act-btn svg{width:36px;height:36px;stroke:var(--cel-ink);stroke-width:2;margin-top:-2px}
 body.touch .stick{display:block}
-body.touch.is-loading .stick, body.touch.focus .stick{display:none}
-/* at rest the ring is a quiet hint of where to put a thumb; anywhere on the left of the scene
-   works, and the ring jumps under it (input.js), brightening while it steers */
-.stick{transition:opacity .25s var(--ease), background .25s;opacity:.75}
-.stick.live{opacity:1;background:rgba(250,250,247,.5);transition:none}
+body.touch .act-btn{display:grid}
+body.touch.is-loading .stick, body.touch.focus .stick, body.touch.is-loading .act-btn, body.touch.focus .act-btn{display:none}
+.stick.live{background:var(--cream-lo);box-shadow:inset 0 -3px 0 var(--socket-lo),3px 5px 0 var(--cel-ink)}
 .stick.live .stick-knob{transition:none}
-.stick-knob{transition:transform .18s var(--ease)}
-/* jump: bottom right, under the right thumb, clear of the prompt (which rides above it) */
-.jump-btn{position:fixed;z-index:11;right:var(--gut);bottom:calc(var(--gut) + 136px);width:64px;height:64px;border:0;border-radius:50%;background:var(--plate);color:var(--ink);box-shadow:var(--shadow);display:none;place-items:center;touch-action:none;-webkit-tap-highlight-color:transparent}
-.jump-btn svg{width:26px;height:26px}
-.jump-btn:active{transform:scale(.92);background:var(--signal);color:#fff}
-body.touch .jump-btn{display:grid}
-body.touch.is-loading .jump-btn, body.touch.focus .jump-btn{display:none}
+.act-btn.on:active{transform:translate(2px,3px);box-shadow:inset 0 -3px 0 var(--cream-lo),1px 2px 0 var(--cel-ink)}
+.act-btn:focus{outline:none}
+.act-btn:focus-visible{outline:3px solid var(--signal);outline-offset:3px}
+/* interact (the E button): dimmed and flat while nothing is in range, cream with an ink hand and a blue dot (the prompt's
+   own colour) while the prompt is up. main.js sets .on from the prompt's visibility / html[data-prompt]. */
+.act-btn{opacity:.5;box-shadow:inset 0 -7px 0 var(--cream-lo),2px 3px 0 var(--cel-ink);transition:opacity .2s var(--ease)}
+.act-btn.on{opacity:1;box-shadow:inset 0 -7px 0 var(--cream-lo),3px 5px 0 var(--cel-ink)}
+.act-btn.on svg{stroke:var(--cel-blue,#2B2BEE)}
+/* ====================================================================================================== */
 
 .fade{position:fixed;inset:0;z-index:35;background:var(--paper);opacity:0;pointer-events:none;transition:opacity .45s var(--ease)}
 .fade.on{opacity:1}
 
 @media (max-width:640px){
   .intro{place-items:end start;padding-bottom:12vh;background:linear-gradient(0deg, rgba(246,243,255,.97) 0%, rgba(246,243,255,.88) 55%, rgba(246,243,255,0) 90%)}
-  .wordmark{font-size:17px}
-  .seg button{padding:7px 10px;font-size:12px}
-  .progress{padding:10px 12px}
-  .glyph{width:28px;height:28px}
-  .glyph svg{width:16px;height:16px}
-  .icon-btn{width:38px;height:38px}
-  /* no room for a third control in the top bar: the lightbulb sits under the map button */
-  .goal-btn{position:fixed;top:calc(var(--gut) + 48px);right:var(--gut)}
-  /* the speaker joins it on that second row, to its left (38 + 8 gap); alone when the bulb is hidden */
-  .sound-btn{position:fixed;top:calc(var(--gut) + 48px);right:calc(var(--gut) + 46px)}
-  .hud-right:has(#goalBtn[hidden]) .sound-btn{right:var(--gut)}
-  .goal{top:calc(var(--gut) + 98px)}
-  .goal::before{right:12px}
-  .panel{top:auto;left:var(--gut);height:min(78vh,640px);width:auto;transform:translateY(calc(100% + 40px))}
-  .hint{white-space:normal;text-align:center;border-radius:16px;max-width:calc(100vw - 2 * var(--gut))}
-  /* the bottom edge belongs to the glyph card (--card, ~122 px tall at 375) and the stick sits above
-     its left end: the prompt rides on the right, just over the card and clear of the stick; the hint
-     goes above the stick's top (gut + 110 + 112), so the three never stack */
-  .prompt{left:auto;right:var(--gut);bottom:calc(var(--gut) + 136px);transform:none;max-width:calc(100vw - 2 * var(--gut) - 136px)}
-  .prompt{border-radius:22px;text-align:left;line-height:1.2}   /* a long label wraps to two lines rather than reach the stick */
-  body.touch .prompt{bottom:calc(var(--gut) + 224px)}   /* one slot up: the jump button holds gut + 136 under the right thumb */
-  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .panel{top:auto;left:var(--gut);height:min(78vh,640px);width:auto;transform:translateY(calc(100% + 40px))}   /* one slot up: the jump button holds gut + 136 under the right thumb */
   /* the mini-game bar: title + About + Leave on row one (the title truncates), the status wraps on
      its own row and the tools scroll on a third, so Leave can never be pushed off-screen */
   .focusbar{flex-wrap:wrap;border-radius:22px;overflow:visible;width:calc(100vw - 2 * var(--gut));row-gap:6px}
@@ -299,32 +196,6 @@ body.touch.is-loading .jump-btn, body.touch.focus .jump-btn{display:none}
   .focus-tools{order:4;flex:1 0 100%;overflow-x:auto;scrollbar-width:none}
 }
 @media (prefers-reduced-motion:reduce){*{transition-duration:.01ms !important;animation-duration:.01ms !important}}
-
-.map-svg .hemi{fill:#D9F0DD;stroke:var(--ink);stroke-width:.6}
-.map-svg .hemi.moon{fill:#E4DEF6}
-.map-svg .hemi-label{font:600 6px var(--f-body);fill:var(--ink-soft);stroke:none}
-/* on a phone the lower half is Blip, the stick, the prompt and the glyph card, so the toast and
-   the hint move under the top bar, below the lightbulb (gut + 48 + 38) so neither covers it; they
-   share that slot, and the hint steps aside while a toast or the goal bubble is up */
-@media (max-width:640px){
-  .toast{top:calc(var(--gut) + 98px)}
-  .hint{bottom:auto;top:calc(var(--gut) + 98px);transform:translate(-50%,-6px)}
-  .hint.show{transform:translate(-50%,0)}
-  body:has(.toast.show) .hint, body:has(.goal:not([hidden])) .hint{opacity:0}
-}
-/* tablet and small laptop: the glyph card (334 x 116 at gut) leaves no room beside it for the
-   centred controls hint (~493 px) below ~1240 px, or for the prompt (up to ~260 px) below ~1020 px,
-   so those step up over the card's top (gut + 128) instead of running into it. Below 1020 the prompt
-   takes that slot and the hint goes one row higher while a prompt is up. */
-@media (min-width:641px) and (max-width:1259px){
-  .hint{bottom:calc(var(--gut) + 128px);transition:opacity .6s var(--ease), transform .6s var(--ease), bottom .4s var(--ease)}
-}
-@media (min-width:641px) and (max-width:1019px){
-  .prompt{bottom:calc(var(--gut) + 128px)}
-  body:has(.prompt:not([hidden])) .hint{bottom:calc(var(--gut) + 184px)}
-}
-/* one popover at a time: while the goal bubble is open no glyph name shows (hover included) */
-body:has(.goal:not([hidden])) .glyph-tip{opacity:0 !important}
 
 /* film player */
 .video{position:fixed;inset:0;z-index:32;display:grid;place-items:center;padding:var(--gut);background:rgba(30,31,38,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;visibility:hidden;transition:opacity .4s var(--ease),visibility .4s}
@@ -341,10 +212,8 @@ body:has(.goal:not([hidden])) .glyph-tip{opacity:0 !important}
 .booth-h{margin:20px 0 8px;font-family:var(--f-display);font-size:15px;font-weight:700;letter-spacing:-.01em}
 .booth-row{display:flex;flex-wrap:wrap;gap:8px}
 .booth-row .chip{min-height:40px;cursor:var(--cur-pt, pointer)}
-.booth-row .chip small{font-size:10px;font-weight:600;opacity:.7;text-transform:uppercase;letter-spacing:.06em}
 .booth-row button:disabled{opacity:.45;cursor:not-allowed}
 .swatch{width:40px;height:40px;border-radius:999px;border:2px solid var(--plate);background:var(--sw);box-shadow:0 0 0 1.5px var(--rule);cursor:var(--cur-pt, pointer);padding:0}
-.swatch[aria-pressed="true"]{box-shadow:0 0 0 2.5px var(--ink)}
 .booth-photo{margin-top:24px;width:100%;justify-content:center}
 .booth-photo:disabled{opacity:.6}
 @media (max-width:640px){
@@ -357,23 +226,18 @@ body:has(.goal:not([hidden])) .glyph-tip{opacity:0 !important}
   .booth-row{gap:6px}
   .booth-photo{margin-top:16px}
 }
-@media (max-width:640px){
-  /* second HUD row, left of the speaker (bulb shown) or in its place */
-  .booth-btn{position:fixed;top:calc(var(--gut) + 48px);right:calc(var(--gut) + 92px)}
-  .hud-right:has(#goalBtn[hidden]) .booth-btn{right:calc(var(--gut) + 46px)}
-}
 
 /* custom cursor: the Blender-rendered arrow (cream face, lavender sides, ink outline), lavender-face variant on clickables.
    Hotspot is the arrow tip in 1x CSS px: 6 3 (the 64 px file is the 2x). Plain cursors are the fallback where image-set() is unsupported. */
 :root{--cur:default;--cur-pt:pointer}
 @supports (cursor:image-set(url("assets/cursor/arrow-32.png") 1x) 6 3,default){
-  :root{--cur:image-set(url("assets/cursor/arrow-32.png") 1x,url("assets/cursor/arrow-64.png") 2x) 6 3,default;--cur-pt:image-set(url("assets/cursor/pointer-32.png") 1x,url("assets/cursor/pointer-64.png") 2x) 6 3,pointer}
+  :root{--cur:image-set(url("assets/cursor/arrow-32.png") 1x,url("assets/cursor/arrow-64.png") 2x) 6 3,default;--cur-pt:image-set(url("assets/cursor/pointer-32.png") 1x,url("assets/cursor/pointer-64.png") 2x) 6 3,pointer;--cur-press:image-set(url("assets/cursor/press-32.png") 1x,url("assets/cursor/press-64.png") 2x) 6 3,pointer}
 }
 @supports (cursor:-webkit-image-set(url("assets/cursor/arrow-32.png") 1x) 6 3,default) and (not (cursor:image-set(url("assets/cursor/arrow-32.png") 1x) 6 3,default)){
-  :root{--cur:-webkit-image-set(url("assets/cursor/arrow-32.png") 1x,url("assets/cursor/arrow-64.png") 2x) 6 3,default;--cur-pt:-webkit-image-set(url("assets/cursor/pointer-32.png") 1x,url("assets/cursor/pointer-64.png") 2x) 6 3,pointer}
+  :root{--cur:-webkit-image-set(url("assets/cursor/arrow-32.png") 1x,url("assets/cursor/arrow-64.png") 2x) 6 3,default;--cur-pt:-webkit-image-set(url("assets/cursor/pointer-32.png") 1x,url("assets/cursor/pointer-64.png") 2x) 6 3,pointer;--cur-press:-webkit-image-set(url("assets/cursor/press-32.png") 1x,url("assets/cursor/press-64.png") 2x) 6 3,pointer}
 }
 html,body,canvas{cursor:var(--cur)}
-button,a,[role="button"],[data-mode],.glyph,.map-svg .isle,.chip,.swatch{cursor:var(--cur-pt)}
+button,a,[role="button"],[data-mode],.glyph,.map-pin,.chip,.swatch{cursor:var(--cur-pt)}
 input[type="text"],textarea{cursor:text}
 
 /* ---- Gravity Pong coach (web/src/games/gravity-pong.js): ghost hand, drag line and one-line instruction.
@@ -413,15 +277,6 @@ input[type="text"],textarea{cursor:text}
 .finale-stay:focus-visible{outline:2.5px solid var(--signal);outline-offset:3px;border-radius:6px}
 /* a toast raised while the card is up (the "link is on its way" note) shows above its backdrop */
 body:has(.finale.open) .toast{z-index:35}
-/* "Say hi" joins the progress card's last row at 9 / 9, a small cel button on the right */
-.progress.done .progress-cta{grid-column:1}
-.say-hi{grid-column:2;justify-self:end;align-self:end;margin:0 0 -4px;padding:4px 11px 6px;border:2px solid var(--ink);border-radius:9px;background:var(--cel-blue);color:#fff;
-  font:700 12px/1 var(--f-body);text-shadow:0 1px 0 var(--cel-blue-lo);box-shadow:inset 0 2px 0 var(--cel-blue-hi),inset 0 -3px 0 var(--cel-blue-lo),2px 3px 0 var(--ink);
-  transition:transform .12s var(--ease),box-shadow .12s var(--ease);-webkit-tap-highlight-color:transparent}
-@media (hover:hover){.say-hi:hover{transform:translate(-1px,-1px);box-shadow:inset 0 2px 0 var(--cel-blue-hi),inset 0 -3px 0 var(--cel-blue-lo),3px 4px 0 var(--ink)}}
-.say-hi:active{transform:translate(2px,3px);box-shadow:inset 0 2px 0 var(--cel-blue-hi),inset 0 -2px 0 var(--cel-blue-lo),0 0 0 var(--ink)}
-.say-hi:focus{outline:none}
-.say-hi:focus-visible{outline:2.5px solid var(--signal);outline-offset:3px}
 @media (max-width:640px){
   .finale{place-items:end center}
   .finale-card{padding:22px 20px 24px}
@@ -434,3 +289,366 @@ body:has(.finale.open) .toast{z-index:35}
   .finale-actions .btn-cel{width:100%}
   .finale-stay{align-self:center}
 }
+
+/* ======================================================================================================
+   HUD: direction C, "Collector's dock" (track UB, phase 1). Top bar, bulb + hint bubble, menu, dock, prompt slot.
+   Cel language: 3px ink outline, hard ink drop, two tones, no blur, no gradient.
+   --ctl-size / --ctl-inset / --ctl-bottom are the contract with track I (the move stick bottom-left and the jump
+   button bottom-right are --ctl-size circles at those insets); the dock and the prompt slot never enter them. */
+:root{
+  --cel-ink:#1E1F26; --cream:#F4EEDC; --cream-lo:#D9D0B6; --socket:#CFC7AE; --socket-lo:#B2A98E;
+  --ctl-size:88px; --ctl-inset:max(16px, env(safe-area-inset-left, 0px)); --ctl-bottom:calc(24px + env(safe-area-inset-bottom, 0px));
+  --hud-l:max(var(--gut), env(safe-area-inset-left, 0px)); --hud-r:max(var(--gut), env(safe-area-inset-right, 0px));
+  --hud-t:max(var(--gut), env(safe-area-inset-top, 0px)); --hud-b:max(var(--gut), env(safe-area-inset-bottom, 0px));
+  --rb:48px; --rgap:12px; --tok:46px;
+}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+body.is-loading .hud-top, body.is-loading .hud-bottom{opacity:0}
+.hud-top,.hud-bottom{transition:opacity .8s var(--ease), right .7s var(--ease)}
+body.focus .hud-bottom{opacity:0;pointer-events:none}
+
+/* top bar: one-line ink wordmark, the bulb, one menu button */
+.hud-top{position:fixed;z-index:10;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  padding:var(--hud-t) var(--hud-r) 0 var(--hud-l);pointer-events:none}
+.hud-top > *{pointer-events:auto}
+.wordmark{font:800 26px/48px var(--f-display);letter-spacing:-.02em;color:#fff;text-decoration:none;white-space:nowrap;
+  -webkit-text-stroke:6px var(--cel-ink);paint-order:stroke fill;text-shadow:2px 3px 0 var(--cel-ink);
+  /* the stroke and hard drop keep it legible over any backdrop, dark screens included */
+  min-height:44px;display:inline-block}
+html.kbd .wordmark:focus-visible{outline:3px solid var(--cel-ink);outline-offset:6px;border-radius:8px}
+.hud-right{position:relative;display:flex;gap:var(--rgap);align-items:flex-start}
+.rbtn{position:relative;width:var(--rb);height:var(--rb);padding:0;border-radius:50%;border:3px solid var(--cel-ink);background:var(--cream);color:var(--cel-ink);
+  box-shadow:inset 0 -5px 0 var(--cream-lo),3px 4px 0 var(--cel-ink);display:grid;place-items:center;transition:transform .12s var(--ease),box-shadow .12s var(--ease);-webkit-tap-highlight-color:transparent}
+.rbtn svg{width:22px;height:22px;stroke:var(--cel-ink);stroke-width:2;margin-top:-2px}
+.rbtn:active{transform:translate(2px,3px);box-shadow:inset 0 -3px 0 var(--cream-lo),1px 1px 0 var(--cel-ink)}
+@media (hover:hover){.rbtn:hover{transform:translate(-1px,-1px);box-shadow:inset 0 -5px 0 var(--cream-lo),4px 6px 0 var(--cel-ink)}.rbtn:active{transform:translate(2px,3px)}}
+.rbtn:focus{outline:none}
+html.kbd .rbtn:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+.rbtn[aria-expanded="true"]{background:var(--cel-ink);color:var(--cream)}
+.rbtn[aria-expanded="true"] svg{stroke:var(--cream)}
+.bulb{background:#FFD84A;box-shadow:inset 0 -5px 0 #E0A92B,3px 4px 0 var(--cel-ink)}
+@media (hover:hover){.bulb:hover{box-shadow:inset 0 -5px 0 #E0A92B,4px 6px 0 var(--cel-ink)}}
+.bulb:active{box-shadow:inset 0 -3px 0 #E0A92B,1px 1px 0 var(--cel-ink)}
+.bulb[aria-expanded="true"]{background:#FFD84A;color:var(--cel-ink)}
+.bulb[aria-expanded="true"] svg{stroke:var(--cel-ink)}
+.bulb-dot{position:absolute;right:-5px;top:-5px;width:15px;height:15px;border-radius:50%;background:#E5483E;border:3px solid var(--cel-ink)}
+
+/* hint bubble: anchored to the bulb (its tail points at the bulb's centre) */
+.goal{position:absolute;z-index:13;top:calc(var(--rb) + 14px);right:0;width:min(300px,calc(100vw - var(--hud-l) - var(--hud-r)));
+  padding:10px 48px 14px 14px;border-radius:16px;background:var(--cream);border:3px solid var(--cel-ink);
+  box-shadow:inset 0 -5px 0 var(--cream-lo),4px 5px 0 var(--cel-ink);animation:goalIn .22s var(--ease)}
+.goal::before{content:"";position:absolute;right:calc(var(--rb) + var(--rgap) + var(--rb) / 2 - 11px);top:-13px;width:20px;height:20px;background:var(--cream);
+  border:3px solid var(--cel-ink);border-right:0;border-bottom:0;transform:rotate(45deg);border-radius:4px 0 0 0}
+@keyframes goalIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.goal-head{position:relative;margin:0 0 6px;font:700 11px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:#7A5C00}
+.goal-text{position:relative;margin:0;font:600 15px/1.35 var(--f-body);text-wrap:pretty;color:var(--cel-ink)}
+.goal-text b{color:var(--cel-blue-lo)}
+.goal-text kbd{background:var(--cel-blue);color:#fff;border:2px solid var(--cel-ink);border-radius:6px;padding:2px 6px;font-size:12px;box-shadow:0 2px 0 var(--cel-ink)}
+.goal-close{position:absolute;top:2px;right:2px;width:44px;height:44px;border:0;border-radius:50%;background:transparent;display:grid;place-items:center;color:var(--cel-ink)}
+.goal-close svg{width:16px;height:16px;stroke-width:2.2}
+.goal-close:focus{outline:none}
+html.kbd .goal-close:focus-visible{outline:3px solid var(--cel-ink);outline-offset:-4px}
+
+/* menu popover: the four old buttons as 48px rows */
+.menu{position:absolute;z-index:14;top:calc(var(--rb) + 12px);right:0;min-width:224px;padding:6px 6px 10px;border-radius:16px;background:var(--cream);border:3px solid var(--cel-ink);
+  box-shadow:inset 0 -5px 0 var(--cream-lo),4px 5px 0 var(--cel-ink);animation:goalIn .22s var(--ease)}
+.menu-item{width:100%;min-height:48px;display:flex;align-items:center;gap:12px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:var(--cel-ink);text-align:left;font:700 16px/1 var(--f-body);-webkit-tap-highlight-color:transparent}
+.menu-item svg{flex:none;width:22px;height:22px;stroke:var(--cel-ink);stroke-width:2}
+.menu-item .mi-t{flex:1}
+.menu-item kbd{background:var(--cel-ink);color:var(--cream);font-size:12px;padding:4px 7px}
+.menu-item .mi-state{font:700 12px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border-radius:999px;background:var(--cel-ink);color:var(--cream)}
+.sound-btn .mi-state::after{content:"On"}
+.sound-btn.is-muted .mi-state::after{content:"Off"}
+.sound-btn.is-muted .mi-state{background:var(--socket);color:var(--cel-ink)}
+.sound-btn .snd-off, .sound-btn.is-muted .snd-on{display:none}
+.sound-btn.is-muted .snd-off{display:inline}
+.menu-item:focus{outline:none}
+html.kbd .menu-item:focus-visible{outline:3px solid var(--cel-ink);outline-offset:-3px;background:#fff}
+@media (hover:hover){.menu-item:hover{background:#fff}}
+.menu-item:active{background:var(--cream-lo)}
+.menu-item[aria-current="true"]{background:#fff}
+
+/* the dock: count pill + nine coins. Empty socket until found; found = the project's own two tones */
+.hud-bottom{position:fixed;z-index:10;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:0 var(--hud-r) var(--hud-b) var(--hud-l);pointer-events:none}
+.dock{pointer-events:auto;display:flex;align-items:center;gap:14px;padding:10px 16px 14px 12px;border-radius:999px;background:var(--cream);border:3px solid var(--cel-ink);
+  box-shadow:inset 0 -6px 0 var(--cream-lo),4px 6px 0 var(--cel-ink)}
+.count{margin:0;display:flex;align-items:baseline;gap:3px;font:800 20px/1 var(--f-display);letter-spacing:-.01em;background:var(--cel-ink);color:var(--cream);border-radius:999px;padding:8px 13px 9px;white-space:nowrap}
+.count b{font-weight:800}
+.count em{font-style:normal;font-weight:500;font-size:15px;opacity:.8;margin:0 2px}
+.row{display:flex;gap:8px;list-style:none;margin:0;padding:0}
+.tok{position:relative;flex:none;width:var(--tok);height:var(--tok);padding:0;border-radius:50%;border:3px solid var(--cel-ink);display:grid;place-items:center;color:var(--cel-ink);
+  transition:transform .12s var(--ease);-webkit-tap-highlight-color:transparent}
+.tok svg{width:62%;height:62%;stroke:var(--cel-ink);stroke-width:2;transition:transform .5s var(--ease)}
+.tok.empty{background:var(--socket);box-shadow:inset 0 5px 0 var(--socket-lo)}
+.tok.empty svg{stroke:#8D845F;stroke-width:1.8;margin-top:2px}
+.tok.found{background:var(--c);box-shadow:inset 0 -6px 0 var(--lo),0 3px 0 var(--cel-ink)}
+.tok.found svg{margin-top:-2px}
+.tok.found::after{content:"";position:absolute;left:18%;top:12%;width:26%;height:14%;border-radius:999px;background:rgba(255,255,255,.55);transform:rotate(-30deg)}
+.tok.pop svg{transform:scale(1.5)}
+.tok.here{transform:translateY(-5px)}
+.tok.here::before{content:"";position:absolute;bottom:-12px;left:50%;margin-left:-3px;width:6px;height:6px;border-radius:50%;background:var(--cel-ink)}
+@media (hover:hover){.tok:hover{transform:translateY(-3px)}.tok.here:hover{transform:translateY(-7px)}}
+.tok:focus{outline:none}
+html.kbd .tok:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px;transform:translateY(-3px)}
+/* coin name: ink tip above the dock, placed by ui.js (placeTip) so it stays on screen */
+.glyph-tip{position:absolute;left:var(--tx,0px);bottom:calc(100% + var(--tb,0px) + 14px);transform:translateY(4px);padding:8px 11px 9px;border-radius:10px;background:var(--cel-ink);color:var(--cream);
+  font:700 13px/1.15 var(--f-body);white-space:nowrap;text-align:left;pointer-events:none;opacity:0;transition:opacity .2s var(--ease),transform .2s var(--ease)}
+.glyph-tip::after{content:"";position:absolute;left:var(--ax,20px);top:100%;margin-left:-6px;border:6px solid transparent;border-top-color:var(--cel-ink)}
+.glyph-tip b{display:block;font:700 15px/1.1 var(--f-display);letter-spacing:-.01em}
+.glyph-tip small{display:block;margin-top:3px;font:600 11px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:#C7C8C2}
+.glyph:focus-visible .glyph-tip,.glyph.tip .glyph-tip{opacity:1;transform:none}
+@media (hover:hover){.glyph:hover .glyph-tip{opacity:1;transform:none}}
+.hud-bottom:has(.glyph:is(.tip,:hover,:focus-visible)){z-index:13}
+/* one popover at a time: a coin's name, the hint bubble and the menu never share the screen */
+body:has(.glyph:is(.tip,:focus-visible)) :is(.hint,.prompt){opacity:0 !important;visibility:hidden}
+@media (hover:hover){body:has(.glyph:hover) :is(.hint,.prompt){opacity:0 !important;visibility:hidden}}
+body:has(#goal:not([hidden])) .glyph-tip, body:has(#menu:not([hidden])) .glyph-tip{opacity:0 !important}
+
+/* Say hi: at 9 / 9 it joins the dock as a blue cel button, always visible (Escape on the card never removes it) */
+.say-hi{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 20px 3px;border:3px solid var(--cel-ink);border-radius:999px;background:var(--cel-blue);color:#fff;
+  font:800 19px/1 var(--f-display);letter-spacing:-.005em;text-shadow:0 2px 0 var(--cel-blue-lo);box-shadow:inset 0 -6px 0 var(--cel-blue-lo),0 4px 0 var(--cel-ink);
+  transition:transform .12s var(--ease),box-shadow .12s var(--ease);-webkit-tap-highlight-color:transparent}
+.say-hi svg{width:18px;height:18px;stroke:#fff;stroke-width:2.6}
+@media (hover:hover){.say-hi:hover{transform:translate(-1px,-1px)}}
+.say-hi:active{transform:translate(1px,3px);box-shadow:inset 0 -3px 0 var(--cel-blue-lo),0 1px 0 var(--cel-ink)}
+.say-hi:focus{outline:none}
+html.kbd .say-hi:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+.say-hi.nudge{animation:sayNudge .6s var(--ease) 3}
+@keyframes sayNudge{0%,100%{transform:none}35%{transform:translateY(-8px)}65%{transform:translateY(0)}}
+
+/* prompt + controls hint share ONE slot above the dock; the prompt wins, so they never stack */
+.hint,.prompt{position:fixed;left:50%;bottom:calc(var(--hud-b) + 96px);transform:translateX(-50%);z-index:12}
+.hint{display:flex;align-items:center;gap:14px;padding:12px 18px 14px;border-radius:999px;background:var(--cel-ink);color:var(--cream);font:600 14px/1.3 var(--f-body);white-space:nowrap;
+  border:3px solid var(--cel-ink);box-shadow:3px 4px 0 rgba(30,31,38,.35);opacity:0;transition:opacity .5s var(--ease);pointer-events:none}
+.hint.show{opacity:1}
+.hint kbd{background:var(--cream);color:var(--cel-ink)}
+body:has(.prompt:not([hidden])) .hint{opacity:0}
+.prompt{display:flex;align-items:center;gap:10px;min-height:48px;padding:7px 18px 9px 8px;border-radius:999px;background:#fff;border:3px solid var(--cel-ink);color:var(--cel-ink);
+  box-shadow:inset 0 -5px 0 #E1E2DC,3px 4px 0 var(--cel-ink);font:700 16px/1.15 var(--f-body);white-space:nowrap;animation:promptRise .35s var(--ease);-webkit-tap-highlight-color:transparent}
+.prompt kbd{display:grid;place-items:center;width:30px;height:30px;padding:0;border-radius:50%;background:var(--cel-blue);color:#fff;border:2.5px solid var(--cel-ink);font:800 14px var(--f-display);box-shadow:inset 0 -3px 0 var(--cel-blue-lo)}
+.prompt .tap-ico{display:none;width:30px;height:30px;border-radius:50%;background:var(--cel-blue);color:#fff;border:2.5px solid var(--cel-ink);box-shadow:inset 0 -3px 0 var(--cel-blue-lo);place-items:center}
+.prompt .tap-ico svg{width:17px;height:17px;stroke:#fff;stroke-width:2}
+body.touch .prompt .tap-ico{display:grid}
+.prompt:focus{outline:none}
+html.kbd .prompt:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+@media (hover:hover){.prompt:hover{transform:translateX(-50%) translateY(-1px)}}
+@keyframes promptRise{from{opacity:0;margin-bottom:-8px}to{opacity:1;margin-bottom:0}}
+@media (min-width:900px){
+  /* with the project panel open the world's centre moves left (camera view offset), and so do the dock and the prompt slot */
+  body.panel-open .hud-bottom{right:calc(min(400px, 100vw) + var(--gut))}
+  body.panel-open .hint{left:calc((100vw - min(400px, 100vw) - var(--gut)) / 2)}
+}
+.hint,.prompt{transition:left .7s var(--ease), opacity .5s var(--ease)}
+
+/* phone (and landscape phone): corners are reserved for the stick (bottom-left) and jump (bottom-right), each --ctl-size.
+   The dock is ONE slim row of coins: each tap target is 33 x 44 (touching, never overlapping), the visible coin 28px.
+   It sits above the corners; the prompt slot sits above the dock; the centre stays free for drags. */
+@media (max-width:640px), (max-height:520px) and (pointer:coarse){
+  :root{--rb:44px;--rgap:10px;--tok:33px;--dock-h:66px}
+  .wordmark{font-size:21px;line-height:44px;-webkit-text-stroke:5px var(--cel-ink)}
+  .hud-bottom{padding-bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px)}
+  .dock{flex-direction:column;gap:0;border-radius:22px;padding:8px 8px;position:relative}
+  .count{position:absolute;left:50%;top:-16px;transform:translateX(-50%);font-size:14px;padding:5px 11px 6px;border:2.5px solid var(--cream);box-shadow:0 0 0 2.5px var(--cel-ink)}
+  .count em{font-size:12px}
+  .row{flex-wrap:nowrap;justify-content:center;gap:0}
+  .tok{width:var(--tok);height:44px;border:0;border-radius:0;background:none !important;box-shadow:none !important;transform:none !important}
+  .tok::after{display:none}
+  .tok::before,.tok.here::before{content:"";display:block;position:absolute;left:50%;top:50%;bottom:auto;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;
+    border:2.5px solid var(--cel-ink);background:var(--socket);box-shadow:inset 0 3px 0 var(--socket-lo)}
+  .tok.found::before,.tok.found.here::before{background:var(--c);box-shadow:inset 0 -3px 0 var(--lo),0 2px 0 var(--cel-ink)}
+  .tok.here::before{outline:2.5px solid var(--cel-ink);outline-offset:2px}
+  .tok svg{position:relative;width:15px;height:15px;margin-top:0}
+  .tok.found svg{margin-top:-1px}
+  html.kbd .tok:focus-visible{outline:3px solid var(--cel-ink);outline-offset:-3px}
+  .dock.done .say-hi{margin-top:8px;width:100%;justify-content:center}
+  .hint,.prompt{left:50%;bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px + var(--dock-h) + 24px);max-width:calc(100vw - var(--hud-l) - var(--hud-r));white-space:normal;text-align:left}
+  body:has(.dock.done) :is(.hint,.prompt){bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px + var(--dock-h) + 24px + 96px)}
+  .hint{border-radius:16px;text-align:center}
+  .prompt{border-radius:24px}
+  .goal{width:min(272px,calc(100vw - var(--hud-l) - var(--hud-r)))}
+  .menu{min-width:min(240px,calc(100vw - var(--hud-l) - var(--hud-r)))}
+  .toast{top:calc(var(--hud-t) + 64px)}
+  .hint,.prompt{bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px + var(--dock-h) + 28px)}
+}
+/* wider than a phone in portrait (landscape): the slim dock fits between the corners, so it is not lifted */
+@media (min-width:521px) and (max-height:520px) and (pointer:coarse){
+  .hud-bottom{padding-bottom:var(--hud-b)}
+  .hint,.prompt{bottom:calc(var(--hud-b) + var(--dock-h) + 28px)}
+  body:has(.dock.done) :is(.hint,.prompt){bottom:calc(var(--hud-b) + var(--dock-h) + 28px + 96px)}
+}
+@media (prefers-reduced-motion:reduce){
+  .goal,.menu,.prompt,.say-hi.nudge{animation:none !important}
+  .tok,.rbtn,.say-hi{transition:none !important}
+}
+
+/* ======================================================================================================
+   TOUCH CONTROLS, tablet (track I, I2): a touch screen wider than a phone but taller than a landscape phone (an iPad
+   in portrait) shows the full-width dock, which would run under the two corner buttons. Lift the dock, hint and
+   prompt above the corner squares exactly as the phone rules do. Desktop (no coarse pointer) is untouched. */
+@media (min-width:641px) and (min-height:521px) and (pointer:coarse){
+  :root{--dock-h:84px}
+  body.touch .hud-bottom{padding-bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px)}
+  body.touch .hint, body.touch .prompt{bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px + var(--dock-h) + 20px)}
+  body.touch:has(.dock.done) :is(.hint,.prompt){bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px + var(--dock-h) + 20px + 56px)}
+}
+/* ====================================================================================================== */
+
+/* ---- UB: the dock fades after ~4 s idle (ui.js wakeDock); faded coins are not tappable. The prompt and Say hi never fade. */
+.dock{transition:opacity .6s var(--ease),background-color .6s var(--ease),border-color .6s var(--ease),box-shadow .6s var(--ease)}
+body.dock-idle .dock:not(.done){opacity:0;pointer-events:none}
+body.dock-idle .dock:not(.done) *{pointer-events:none}
+.dock .count,.dock .row{transition:opacity .6s var(--ease)}
+@media (prefers-reduced-motion:reduce){.dock,.dock .count,.dock .row{transition:none !important}}
+
+/* ======================================================================================================
+   UB phase 2: every other surface in direction C. Cream surface, 3px navy ink outline, hard ink drop,
+   Bricolage / Instrument Sans, 44px targets, :focus-visible, reduced motion, safe areas. (Overrides the older
+   rules above on purpose; the board map's own stage/pin rules from boardmap.js are NOT restyled here.) */
+
+/* the controls hint: one slim cream pill in the prompt slot (shown once, first visit, ~6 s; ui.js hint()) */
+.hint{background:var(--cream);color:var(--cel-ink);border:3px solid var(--cel-ink);box-shadow:inset 0 -4px 0 var(--cream-lo),3px 4px 0 var(--cel-ink);padding:8px 16px 11px;font:700 14px/1.3 var(--f-body)}
+.hint kbd{background:var(--cel-ink);color:var(--cream);border-radius:6px;padding:4px 7px;font-size:12px}
+
+/* dock at N / N: it morphs into the Say hi bar and stays (never fades, never lost to Escape) */
+.fin-title{display:none;margin:0}
+.dock.done{display:grid;grid-template-columns:auto auto;grid-template-areas:"t hi" "r hi";align-items:center;gap:8px 22px;padding:10px 12px 14px 22px}
+.dock.done .count{display:none}
+.dock.done .fin-title{display:block;grid-area:t;font:800 19px/1 var(--f-display);letter-spacing:-.01em;color:var(--cel-ink)}
+.dock.done .row{grid-area:r}
+.dock.done .say-hi{grid-area:hi;min-height:56px;padding:0 28px 3px;font-size:22px;gap:10px}
+.dock.done .say-hi svg{width:20px;height:20px}
+@media (max-width:640px), (max-height:520px) and (pointer:coarse){
+  .dock.done{grid-template-columns:1fr;grid-template-areas:"t" "r" "hi";justify-items:center;gap:6px;padding:12px 8px 10px;border-radius:22px}
+  .dock.done .fin-title{font-size:15px;text-align:center}
+  .dock.done .say-hi{margin:2px 0 0;width:100%;justify-content:center;min-height:48px;font-size:19px}
+}
+
+/* shared: close button, chips, buttons */
+.panel-close{top:10px;right:10px;width:44px;height:44px;border:3px solid var(--cel-ink);background:var(--cream);box-shadow:inset 0 -4px 0 var(--cream-lo),2px 3px 0 var(--cel-ink);color:var(--cel-ink);transition:transform .12s var(--ease)}
+.panel-close svg{width:18px;height:18px;stroke:var(--cel-ink);stroke-width:2.4}
+.panel-close:focus{outline:none}
+html.kbd .panel-close:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+@media (hover:hover){.panel-close:hover{transform:translate(-1px,-1px)}}
+.panel-close:active{transform:translate(2px,3px);box-shadow:none}
+.chip{min-height:44px;padding:0 16px 3px;border:3px solid var(--cel-ink);border-radius:999px;background:#fff;color:var(--cel-ink);font:700 14px/1 var(--f-body);box-shadow:inset 0 -4px 0 #E1E2DC,2px 3px 0 var(--cel-ink);justify-content:center;transition:transform .12s var(--ease)}
+.chip:focus{outline:none}
+html.kbd .chip:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+@media (hover:hover){.chip:hover{transform:translate(-1px,-1px)}}
+.chip:active{transform:translate(2px,3px);box-shadow:inset 0 -2px 0 #E1E2DC,0 0 0 var(--cel-ink)}
+.chip[aria-pressed="true"]{background:var(--cel-blue);color:#fff;text-shadow:0 2px 0 var(--cel-blue-lo);box-shadow:inset 0 -4px 0 var(--cel-blue-lo),2px 3px 0 var(--cel-ink)}
+.chip-ink{background:var(--cel-ink);color:var(--cream);box-shadow:inset 0 -4px 0 #000,2px 3px 0 rgba(30,31,38,.35)}
+.chip-ink kbd{background:var(--cream);color:var(--cel-ink)}
+.btn-cel{min-height:48px}
+/* (orchestrator 2026-11-04) no ring on .btn-cel: round 5 approved, two-tone, no ring; keyboard focus = html.kbd thicker ink (line ~71) */
+
+/* focus bar (mini-games, kiosks): a cream pill */
+.focusbar{padding:8px 8px 10px;gap:8px;border:3px solid var(--cel-ink);background:var(--cream);backdrop-filter:none;-webkit-backdrop-filter:none;
+  box-shadow:inset 0 -5px 0 var(--cream-lo),4px 5px 0 var(--cel-ink);bottom:var(--hud-b);max-width:calc(100vw - var(--hud-l) - var(--hud-r))}
+.focus-title{font:800 17px/1 var(--f-display);letter-spacing:-.01em;color:var(--cel-ink)}
+.focus-status{font:600 13px/1.2 var(--f-body);color:var(--cel-ink)}
+
+/* toast */
+.toast{background:var(--cream);color:var(--cel-ink);border:3px solid var(--cel-ink);box-shadow:inset 0 -4px 0 var(--cream-lo),4px 5px 0 var(--cel-ink);border-radius:18px;padding:10px 18px 13px;font:600 14px/1.35 var(--f-body)}
+.toast b{color:var(--cel-blue-lo)}
+.toast svg{stroke:var(--cel-ink);stroke-width:2}
+
+/* project panel and photo booth */
+.panel{border:3px solid var(--cel-ink);border-radius:20px;background:var(--cream);box-shadow:inset 0 -6px 0 var(--cream-lo),6px 8px 0 var(--cel-ink);top:var(--hud-t);right:var(--hud-r);bottom:var(--hud-b)}
+/* orchestrator fix 2026-11-04: a closed panel must be fully gone (it peeked over the mobile stick/interact), and the
+   phone layout keeps its bottom sheet (top:auto) instead of the desktop top/bottom inset above */
+.panel:not(.open){visibility:hidden;transition:transform .7s var(--ease),visibility 0s linear .7s}
+.panel.open{visibility:visible;transition:transform .7s var(--ease),visibility 0s}
+@media (max-width:640px){.panel{top:auto}}
+.panel-shot{margin:0;border-bottom:3px solid var(--cel-ink);background:var(--cel-ink)}
+.panel-meta{font:700 11px/1.3 var(--f-body);letter-spacing:.12em;color:#6A5F3A}
+.panel h2{font:800 34px/1 var(--f-display);letter-spacing:-.025em;color:var(--cel-ink)}
+.panel-myth{font:600 18px/1.3 var(--f-body);font-style:normal;color:var(--cel-ink)}
+.panel-desc{color:#3F4048}
+.tags li{border:2.5px solid var(--cel-ink);box-shadow:none;background:#fff;font:700 12px/1 var(--f-body);padding:6px 10px 7px}
+.booth-h{font:800 15px/1 var(--f-display)}
+.swatch{width:44px;height:44px;border:3px solid var(--cel-ink);box-shadow:inset 0 -4px 0 rgba(30,31,38,.22),2px 3px 0 var(--cel-ink);background:var(--sw)}
+.swatch:focus{outline:none}
+html.kbd .swatch:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+.swatch[aria-pressed="true"]{box-shadow:0 0 0 3px var(--cream),0 0 0 6px var(--cel-ink)}
+.booth-row .chip{min-height:44px}
+@media (max-width:640px){.panel{left:var(--hud-l)}}
+
+/* map overlay: frame, close button, legend (the board and its pins are boardmap.js's own) */
+.map{background:rgba(244,238,220,.62)}
+.map-card{border:3px solid var(--cel-ink);border-radius:20px;background:var(--cream);box-shadow:inset 0 -6px 0 var(--cream-lo),6px 8px 0 var(--cel-ink);padding:22px 22px 18px}
+.map-head{padding-right:56px}
+.map-head h2{font:800 28px/1 var(--f-display);letter-spacing:-.025em;color:var(--cel-ink)}
+.map-head p{font:600 14px/1.35 var(--f-body);color:#3F4048}
+.map-legend{font:700 12px/1 var(--f-body);color:var(--cel-ink);gap:8px 16px;margin-top:12px}
+.map-legend li{display:flex;align-items:center}
+
+/* finale card */
+.finale{background:rgba(244,238,220,.62)}
+.finale-card{border:3px solid var(--cel-ink);border-radius:22px;background:var(--cream);box-shadow:inset 0 -6px 0 var(--cream-lo),6px 8px 0 var(--cel-ink)}
+.finale-glyphs{gap:6px}
+.finale-glyphs li{width:34px;height:34px;border-radius:50%;border:3px solid var(--cel-ink);background:var(--c,#6A6AFF);box-shadow:inset 0 -4px 0 var(--lo,#3030C8),0 2px 0 var(--cel-ink);color:var(--cel-ink)}
+.finale-glyphs svg{width:62%;height:62%;stroke:var(--cel-ink);stroke-width:2}
+.finale h2{font:800 31px/1.02 var(--f-display);letter-spacing:-.03em;color:var(--cel-ink)}
+.finale-text{color:#3F4048;font-weight:500}
+.finale-stay{min-height:44px;color:var(--cel-ink);font-weight:700}
+@media (max-width:640px){.finale-glyphs li{width:28px;height:28px;border-width:2.5px}}
+
+/* intro: copy and extruded headline untouched; type and buttons aligned to C */
+.eyebrow{display:inline-block;padding:6px 12px 7px;border:3px solid var(--cel-ink);border-radius:999px;background:var(--cream);color:var(--cel-ink);font:800 12px/1 var(--f-body);letter-spacing:.12em;box-shadow:2px 3px 0 var(--cel-ink)}
+.intro-tag{color:#2C2D34;font-weight:500}
+.loadbar{height:14px;border:3px solid var(--cel-ink);border-radius:999px;background:var(--cream);max-width:420px}
+.loadbar span{background:var(--cel-blue);border-radius:999px;box-shadow:inset 0 -3px 0 var(--cel-blue-lo)}
+.loadnote{color:#3F4048;font-weight:600}
+.intro-actions .btn-cel{min-height:52px}
+
+@media (prefers-reduced-motion:reduce){.panel,.finale-card,.toast,.hint,.focusbar{transition-duration:.01ms !important}.chip,.panel-close{transition:none !important}}
+/* the booth panel sits where the project panel does: the dock and the prompt slot step left of it too */
+@media (min-width:900px){
+  body:has(#booth[aria-hidden="false"]) .hud-bottom{right:calc(min(400px, 100vw) + var(--gut))}
+  body:has(#booth[aria-hidden="false"]) .hint{left:calc((100vw - min(400px, 100vw) - var(--gut)) / 2)}
+}
+
+/* final-gate fixes (UB): the panel and booth start below the top bar on desktop, so the bulb and menu stay clear of them;
+   the first-visit key hint stays hidden while a panel, the map, the booth or the finale is open; no pulse ring on the bulb */
+@media (min-width:641px){.panel{top:calc(var(--hud-t) + var(--rb) + 16px)}}
+body.panel-open .hint, body:has(.map.open) .hint, body:has(#booth[aria-hidden="false"]) .hint, body:has(.finale.open) .hint{opacity:0 !important;visibility:hidden}
+
+/* U4: on desktop and tablet the dock is quiet (small coins, thin low-contrast tray, no heavy drop, close to the edge) and the
+   prompt slot is computed from the dock's real height (ui.js sets --dock-live) with >=20px clearance, so they never overlap.
+   Phones (and landscape phones) keep their approved layout: this block excludes them. */
+@media (min-width:641px) and (not ((max-height:520px) and (pointer:coarse))){
+  :root{--tok:30px}
+  .hud-bottom{padding-bottom:max(10px, env(safe-area-inset-bottom, 0px))}
+  .dock{gap:10px;padding:6px 10px 8px 8px;border-width:2px;border-color:rgba(30,31,38,.6);background:rgba(244,238,220,.9);box-shadow:inset 0 -3px 0 var(--cream-lo)}
+  .dock.done{padding:10px 12px 14px 22px;border-width:3px;border-color:var(--cel-ink);background:var(--cream);box-shadow:inset 0 -6px 0 var(--cream-lo),4px 6px 0 var(--cel-ink)}
+  .count{font-size:14px;padding:5px 10px 6px;background:rgba(30,31,38,.72)}
+  .count em{font-size:12px}
+  .row{gap:5px}
+  .tok{border-width:2.5px}
+  .tok.found{box-shadow:inset 0 -4px 0 var(--lo),0 1px 0 rgba(30,31,38,.6)}
+  .tok.empty{box-shadow:inset 0 3px 0 var(--socket-lo)}
+  .tok.here{transform:translateY(-3px)}
+  .tok.here::before{bottom:-8px;width:5px;height:5px;margin-left:-2.5px}
+  .hint,.prompt{bottom:calc(max(10px, env(safe-area-inset-bottom, 0px)) + var(--dock-live, 54px) + 24px)}
+}
+/* touch (iPad): keep a 44px-tall hit area around each small coin */
+@media (min-width:641px) and (not ((max-height:520px) and (pointer:coarse))) and (pointer:coarse){
+  .row{gap:0}
+  .tok{width:36px;height:44px;border:0;border-radius:0;background:none !important;box-shadow:none !important;transform:none !important}
+  .tok::after{display:none}
+  .tok::before,.tok.here::before{content:"";display:block;position:absolute;left:50%;top:50%;bottom:auto;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;
+    border:2.5px solid var(--cel-ink);background:var(--socket);box-shadow:inset 0 3px 0 var(--socket-lo)}
+  .tok.found::before,.tok.found.here::before{background:var(--c);box-shadow:inset 0 -4px 0 var(--lo),0 1px 0 rgba(30,31,38,.6)}
+  .tok.here::before{outline:2.5px solid var(--cel-ink);outline-offset:2px}
+  .tok svg{position:relative;width:16px;height:16px;margin-top:0}
+  html.kbd .tok:focus-visible{outline:3px solid var(--cel-ink);outline-offset:-3px}
+  .dock.done .tok{margin:0}
+}
+
+/* ==== orchestrator 2026-11-04, the user: "get rid of that line everywhere, it's hideous" + "cursor should just do a press".
+   No focus ring/outline anywhere for mouse and touch. Keyboard users (html.kbd, set on Tab) get the round-5 treatment:
+   a thicker INK edge, never a blue ring. .btn-cel keeps its own html.kbd box-shadow (line ~71). ==== */
+:focus,:focus-visible{outline:none !important}
+html.kbd :focus-visible:not(.btn-cel):not(canvas){outline:3px solid var(--cel-ink, #1E1F26) !important;outline-offset:2px}
+/* while the mouse is held, the cursor's face sinks into its extrusion (press-32/64.png); same hotspot 6 3 */
+html:active,html:active *{cursor:var(--cur-press, var(--cur-pt, pointer)) !important}

@@ -213,7 +213,11 @@ export const POSTER = { x: 0, y: 5.0, z: -7.7, w: 11.6, h: 6.0, d: 0.3 };
 export const POSTER_BOX = { minX: -5.8, maxX: 5.8, minY: 2.0, maxY: 8.0, minZ: -7.85, maxZ: -7.55 };
 export const PLINTH_BOX = { minX: -2.3, maxX: 2.3, minY: 0, maxY: 1.1, minZ: -7.3, maxZ: -2.7 };
 export const LECTERN_BOX = { minX: -1.6, maxX: 1.6, minY: 0, maxY: 1.0, minZ: 0.02, maxZ: 1.98 };
-const CARD = { x: 4.3, y: 3.9, size: 2.2, scale: 0.6 }; // target preview card on the billboard face
+/* target preview card, pinned proud of the billboard's upper right. GA2: 3.2 x 3.4 (was a 2.2 square), a cream
+   bezel, a GOAL title with a live count and pip row, and the mark drawn larger (scale 0.72, lower in the card).
+   It sits above the billboard copy (so it never hides a word) and in front of the corner slab, clear of the
+   slabs' lit ripple. */
+const CARD = { x: 3.9, y: 6.18, size: 3.0, h: 3.2, scale: 0.68, markDy: 0.5, bezel: 0.12, z: POSTER_BOX.maxZ + 0.52 };
 export const CAM = { pos: [0, 8.2, 12.5], look: [0, 2.2, -3] };
 const BF = POSTER_BOX.maxZ;                          // board front face
 const Z_TEXT = BF + 0.002, Z_SLAB = BF + 0.008, SLAB_D = 0.28;
@@ -721,10 +725,20 @@ export default class BrandStudio {
 
     // target preview card on the billboard face (dark tile, nothing touches the board or the sculpture)
     this.cardMat = mat({ color: "#1E1F26", roughness: 0.7, transparent: true, opacity: 0.95, depthWrite: false });
-    this.card = add(geo(boxXY(CARD.size, CARD.size, 0.1, 0.35, 0.025)), this.cardMat, this.root, false);
-    this.card.position.set(CARD.x, CARD.y, BF + 0.004 + 0.05); this.card.renderOrder = 1;
+    this.card = add(geo(boxXY(CARD.size, CARD.h, 0.1, 0.4, 0.025)), this.cardMat, this.root, false);
+    this.card.position.set(CARD.x, CARD.y, CARD.z + 0.05); this.card.renderOrder = 1;
+    // GA2: cream bezel (a toon slab, so it is inked like every prop) and a GOAL / live-progress face
+    this.bezelMat = mat({ color: "#FFF6E6", roughness: 0.6 });
+    this.bezel = add(geo(boxXY(CARD.size + CARD.bezel * 2, CARD.h + CARD.bezel * 2, 0.07, 0.5, 0.02)), this.bezelMat, this.root, false);
+    this.bezel.position.set(CARD.x, CARD.y, CARD.z + 0.035);
+    this.cardCanvas = document.createElement("canvas"); this.cardCanvas.width = 480; this.cardCanvas.height = Math.round(480 * CARD.h / CARD.size);
+    this.cardTex = new THREE.CanvasTexture(this.cardCanvas); this.cardTex.colorSpace = THREE.SRGBColorSpace; this.cardTex.anisotropy = 8; this.texs.push(this.cardTex);
+    this.cardFaceMat = new THREE.MeshBasicMaterial({ map: this.cardTex, transparent: true, depthWrite: false, toneMapped: false }); this.mats.push(this.cardFaceMat);
+    this.cardFace = new THREE.Mesh(geo(new THREE.PlaneGeometry(CARD.size, CARD.h)), this.cardFaceMat);
+    this.cardFace.position.set(CARD.x, CARD.y, CARD.z + 0.1 + 0.005); this.cardFace.renderOrder = 1.5; this.root.add(this.cardFace);
+    this.cardKey = "";
     this.ghostRoot = new THREE.Group();
-    this.ghostRoot.position.set(CARD.x, CARD.y, BF + 0.004 + 0.1 + 0.03 + 0.002); this.ghostRoot.scale.setScalar(CARD.scale);
+    this.ghostRoot.position.set(CARD.x, CARD.y - CARD.markDy, CARD.z + 0.1 + 0.03 + 0.002); this.ghostRoot.scale.setScalar(CARD.scale);
     this.root.add(this.ghostRoot);
 
     this.liveMat = mat({ color: P0.p, roughness: 0.38 });
@@ -772,6 +786,33 @@ export default class BrandStudio {
     this.txtTex.needsUpdate = true;
     drawCta(this.ctaCanvas.getContext("2d"), this.ctaCanvas.width, this.ctaCanvas.height, p);
     this.ctaTex.needsUpdate = true;
+    this.cardKey = ""; this.redrawCard();
+  }
+
+  /* GA2: GOAL title over the mark, and a pip per target square under it: filled = right, hollow = still to do,
+     coral = an extra square that is not in the mark. It redraws only when the counts change. */
+  redrawCard() {
+    const pr = progress(this.liveP, this.target), done = this.matched;
+    const key = [pr.hit, pr.total, pr.extra, done ? 1 : 0, this.palIdx].join("|");
+    if (key === this.cardKey) return;
+    this.cardKey = key;
+    const c = this.cardCanvas, g = c.getContext("2d"), W = c.width, H = c.height, P = PALETTES[this.palIdx];
+    g.clearRect(0, 0, W, H);
+    g.textBaseline = "alphabetic";
+    g.textAlign = "left"; g.fillStyle = "#FFF6E6"; g.font = '700 84px "Bricolage Grotesque", sans-serif';
+    g.fillText(done ? "MADE IT" : "GOAL", 36, 100);
+    g.textAlign = "right"; g.font = '700 66px "Bricolage Grotesque", sans-serif';
+    g.fillStyle = done ? P.p : "#FFF6E6"; g.fillText(`${pr.hit}/${pr.total}`, W - 36, 98);
+    if (pr.extra) { g.fillStyle = "#FF7A62"; g.font = '700 34px "Bricolage Grotesque", sans-serif'; g.fillText(`+${pr.extra} extra`, W - 36, 134); }
+    // one pip per square of the mark: filled = right, hollow = still to do
+    const n = pr.total, r = 10, gap = 9, y = 150;
+    for (let i = 0; i < n; i++) {
+      const x = 36 + r + i * (2 * r + gap);
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2);
+      if (i < pr.hit) { g.fillStyle = P.p; g.fill(); }
+      g.lineWidth = 4; g.strokeStyle = i < pr.hit ? P.p : "#FFF6E6"; g.stroke();
+    }
+    this.cardTex.needsUpdate = true;
   }
 
   enter() {
@@ -787,11 +828,11 @@ export default class BrandStudio {
     this.ctx.ui.tools(this.free ? [{ label: "New mark", onClick: () => this.newMark() }] : []);
   }
   pushStatus() {
-    if (this.free && this.matched) { this.ctx.ui.status(`${PALETTES[this.palIdx].name} mark made - drag the sculpture to spin it`); return; }
+    if (this.free && this.matched) { this.ctx.ui.status(`${PALETTES[this.palIdx].name} mark made · drag the sculpture to spin it`); return; }
     const p = progress(this.liveP, this.target);
     const extra = p.extra ? `, ${p.extra} extra` : "";
     const lead = this.markIdx === 0 ? "Make the hay.ag mark" : "Match the mark";
-    this.ctx.ui.status(`${lead} — tap the squares (${p.hit} / ${p.total} right${extra})`);
+    this.ctx.ui.status(`${lead} · tap the squares (${p.hit} / ${p.total} right${extra})`);
   }
 
   setPalette(i, instant) {
@@ -858,7 +899,7 @@ export default class BrandStudio {
         this.pushTools();
         this.ctx.solved();
       } else {
-        this.ctx.ui.toast("Mark made.");
+        this.ctx.ui.toast("Mark made. Designer approved. Probably.");
       }
     }
     this.pushStatus();
@@ -905,6 +946,10 @@ export default class BrandStudio {
     this.ghostOp += (this.ghostOpT - this.ghostOp) * (1 - Math.exp(-4 * dt));
     this.ghostMat.opacity = this.ghostOp; this.cardMat.opacity = Math.min(0.95, this.ghostOp);
     this.card.visible = this.ghostOp > 0.004;
+    this.bezel.visible = this.card.visible && this.ghostOpT > 0.5; this.cardFace.visible = this.card.visible;
+    for (const sl of this.slabs) if (sl.mesh.name === "slab-corner") sl.mesh.visible = !(this.card.visible && this.ghostOpT > 0.5);   // GA2: the corner slab steps aside while the goal card is up
+    this.cardFaceMat.opacity = Math.min(1, this.ghostOp / GHOST_ON);
+    this.redrawCard();
     if (Math.abs(this.ghostOp - this.ghostOpT) > 0.002) moving = true;
     const gv = this.ghostOp > 0.004;
     this.ghost.mesh.visible = !!this.ghost.has && gv;

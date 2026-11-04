@@ -228,7 +228,28 @@ export function createAmbient() {
     if (prm.cancelAndHoldAtTime) prm.cancelAndHoldAtTime(now);
     else { const v = prm.value; prm.cancelScheduledValues(now); prm.setValueAtTime(v, now); }
   }
+  // K4: cancelAndHoldAtTime followed by a new ramp misfires in Chrome on a ramp that is still running (a quick map
+  // open / close / open), and AudioParam.value is stale mid-ramp on some Safari / Firefox builds. So neither is trusted:
+  // each ramped param keeps a shadow of its last ramp {t0, v0, t1, v1, exp}, the live value is computed from that
+  // shadow, the timeline is wiped and that value is pinned at `now`, then the new ramp starts from it.
+  const sh = (prm) => ({ prm, t0: 0, v0: NaN, t1: 0, v1: NaN, exp: false });
+  function shadowNow(w, now) {
+    if (!(w.v1 === w.v1)) return w.prm.value;                    // never ramped: the node's own value
+    if (now >= w.t1) return w.v1;
+    if (!(now > w.t0)) return w.v0;
+    const k = (now - w.t0) / (w.t1 - w.t0);
+    return w.exp && w.v0 > 0 && w.v1 > 0 ? w.v0 * Math.pow(w.v1 / w.v0, k) : w.v0 + (w.v1 - w.v0) * k;
+  }
+  function rampFrom(w, now, target, seconds) {
+    const v = shadowNow(w, now), prm = w.prm;
+    prm.cancelScheduledValues(now);
+    prm.setValueAtTime(v, now);
+    if (w.exp) prm.exponentialRampToValueAtTime(target, now + seconds); else prm.linearRampToValueAtTime(target, now + seconds);
+    w.t0 = now; w.v0 = v; w.t1 = now + seconds; w.v1 = target;
+  }
   // reading / place: one combined target, ramped over the duration of the transition that changed it
+  let _shC = null, _shL = null;
+  const shCalm = () => _shC || (_shC = sh(calmGain.gain)), shLp = () => (_shL || (_shL = Object.assign(sh(lp.frequency), { exp: true })));
   function applyCalm(seconds) {
     if (!running()) return;
     const now = ctx.currentTime, reading = readingCount > 0, moon = place === 'moon';
@@ -236,11 +257,11 @@ export function createAmbient() {
     const tLp = Math.min(reading ? READ_LP : nyq, moon ? MOON_LP : nyq);
     try {
       if (!(seconds > 0)) {   // (re)start / resume: jump-free re-assert of the current target
-        if (!(wCalm === tCalm)) { holdAt(calmGain.gain, now); calmGain.gain.linearRampToValueAtTime(tCalm, now + 0.3); }
-        if (!(wLp === tLp)) { holdAt(lp.frequency, now); lp.frequency.exponentialRampToValueAtTime(tLp, now + 0.3); }
+        if (!(wCalm === tCalm)) rampFrom(shCalm(), now, tCalm, 0.3);
+        if (!(wLp === tLp)) rampFrom(shLp(), now, tLp, 0.3);
       } else {
-        if (!(wCalm === tCalm)) { holdAt(calmGain.gain, now); calmGain.gain.linearRampToValueAtTime(tCalm, now + seconds); }
-        if (!(wLp === tLp)) { holdAt(lp.frequency, now); lp.frequency.exponentialRampToValueAtTime(tLp, now + seconds); }
+        if (!(wCalm === tCalm)) rampFrom(shCalm(), now, tCalm, seconds);
+        if (!(wLp === tLp)) rampFrom(shLp(), now, tLp, seconds);
       }
       wCalm = tCalm; wLp = tLp;
     } catch (_) { /* never throw */ }

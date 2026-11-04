@@ -193,7 +193,6 @@ export class Pinscreen {
     this.awake = true;
     return true;
   }
-  get canUndo() { return this.undoLen > 0; }
 
   /* tell the shader how big a pixel is, and pick the level of detail: individual pins up close
      (or while playing), a smooth relief surface from further away */

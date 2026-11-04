@@ -45,13 +45,13 @@ export class AsciiPass {
     this.quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.mat);
     this.qscene = new THREE.Scene(); this.qscene.add(this.quad);
     this.qcam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
-    this.mix = 0; this.until = 0;
+    this.mix = 0; this.until = 0; this.hold = false; this.overlayLayer = null;   // hold: sustained by an act (moonwalk.js), cleared by it; the secret only uses trigger()
   }
   trigger(seconds = 14) { this.until = performance.now() / 1000 + seconds; }
-  get active() { return this.mix > 0.001 || performance.now() / 1000 < this.until; }
+  get active() { return this.mix > 0.001 || performance.now() / 1000 < this.until || this.hold; }
   render(scene, camera, dt) {
     const now = performance.now() / 1000;
-    this.mix = THREE.MathUtils.damp(this.mix, now < this.until ? 1 : 0, 3, dt);
+    this.mix = THREE.MathUtils.damp(this.mix, now < this.until || this.hold ? 1 : 0, 3, dt);
     const r = this.renderer;
     const size = r.getDrawingBufferSize(new THREE.Vector2());
     if (this.rt.width !== size.x || this.rt.height !== size.y) this.rt.setSize(size.x, size.y);
@@ -61,5 +61,10 @@ export class AsciiPass {
     r.setRenderTarget(this.rt); r.render(scene, camera);
     r.setRenderTarget(null);
     r.render(this.qscene, this.qcam);
+    if (this.overlayLayer != null) {   // objects on this layer are drawn crisp over the ASCII composite (moonwalk.js letters); the secret never sets it
+      const m = camera.layers.mask, ac = r.autoClear, bg = scene.background;
+      camera.layers.set(this.overlayLayer); r.autoClear = false; scene.background = null; r.clearDepth(); r.render(scene, camera);
+      camera.layers.mask = m; r.autoClear = ac; scene.background = bg;
+    }
   }
 }

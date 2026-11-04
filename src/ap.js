@@ -12,7 +12,7 @@ import * as THREE from "three";
    whole thing is also deterministic under __archipelago.step().
    If ap.glb fails to load, a plain stand-in (capsule boy) plays the same sequence without clips. */
 
-const AP_LINE = "…hey.";
+const AP_LINE = "…oh. A visitor. Hey.";
 const DOOR = { x: 0.78, open: 1.85, w: 1.56, h: 2.0, rect: 1.38, pad: 0.16, fd: 0.16, R: 3.3 };   // hinge x (screen-right edge of the opening), open angle (rad about Y), arch size, frame pad / depth, dome radius
 const Z_IN = 2.7, Z_STEP = 4.0, X_OUT = 0;   // hidden inside the dome / standing just outside the doorway, in its middle
 /* AP_Walk is built from the feet (blender/build_ap.py): one cycle carries him STRIDE metres, so the clip phase is driven by the
@@ -375,7 +375,7 @@ export async function installAP(ctx) {
       await tween(0.55, k => { const e = ease(k); holder.rotation.y = body * e; ap.headYaw = hd * e; ap.headPitch = 0.03 * e; });
       await sleep(1.5);   // the beat
       log("looked");
-      if (ctx.slate) ctx.slate.say({ name: "AP", html: AP_LINE, ms: 1500, base: () => ap.worldFoot(), up: () => house.localToWorld(new THREE.Vector3(0, 1, 0)).sub(house.localToWorld(new THREE.Vector3())).normalize(), top: 2.0 });
+      if (ctx.slate) ctx.slate.say({ name: "AP", html: AP_LINE, ms: 2200, base: () => ap.worldFoot(), up: () => house.localToWorld(new THREE.Vector3(0, 1, 0)).sub(house.localToWorld(new THREE.Vector3())).normalize(), top: 2.0 });
       await sleep(1.2);
       await tween(0.45, k => { const e = ease(k); ap.headYaw = hd * (1 - e); ap.headPitch = 0.03 * (1 - e); });
       // turn about on the spot with short steps (round toward the side he is already facing), then walk straight in until hidden

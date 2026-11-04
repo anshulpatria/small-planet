@@ -8,8 +8,10 @@ import { createOccFade } from "./occfade.js";
 import { Player, SIT } from "./player.js";
 import { CameraRig } from "./camera.js";
 import { AsciiPass } from "./ascii.js";
-import { toonify, twoTone, twoToneSun, outline, inkResize, RIM_INK_PX } from "./toon.js";
+import { toonify, twoTone, twoToneSun, outline, inkResize, RIM_INK_PX, inkShell } from "./toon.js";
 import { setupMoonFlag } from "./moonflag.js";
+import { moonwalkInstall, moonwalkUpdate } from "./moonwalk.js";
+import { createBoardMap } from "./boardmap.js";
 /* cast + fauna ink: same 2.25 px as everything at range, never thinner than 13 mm up close */
 const CHAR_INK = { minM: 0.008 };
 // the creatures: a thinner line, held 9 cm back in depth, so close parts (eyes, lips, arms on the body) don't ink into one blob
@@ -27,6 +29,7 @@ import { buildReeds } from "./reeds.js";
 import { Campfire } from "./fire.js";
 import { Grass, GROUND_GLSL, groundUniforms, groundFields } from "./grass.js";
 import { FieldFloor, FIELD_EFFECTS, Vending, MoonPlay, terraceFrame } from "./extras.js";
+import { HiveFloor } from "./hive.js";
 import { createAmbient } from "./audio.js";
 import { createSfx } from "./sfx.js";
 import { Booth, makeBooth, STAGE_FADE } from "./booth.js";
@@ -77,7 +80,7 @@ function webglOK() { try { return !!document.createElement("canvas").getContext(
 if (!webglOK()) {
   $("intro").classList.add("gone"); document.body.classList.remove("is-loading");
   $("fallbackNote").hidden = false; $("listBack").hidden = true;
-  document.querySelector(".seg").hidden = true; $("mapBtn").hidden = true;
+  $("mapBtn").hidden = true;
   ui.setMode("list");
   throw new Error("WebGL2 unavailable: showing the project list instead.");
 }
@@ -135,19 +138,26 @@ const fovFor = aspect => aspect >= 1 ? 48 : Math.min(72, 48 + (1 - aspect) * 45)
 function fitCamera() { camera.aspect = innerWidth / innerHeight; camera.fov = fovFor(camera.aspect); camera.updateProjectionMatrix(); }
 fitCamera();
 addEventListener("resize", () => { fitCamera(); renderer.setSize(innerWidth, innerHeight, false); });
-// a thumb on the left of the scene walks only while you're out walking (not in a mini-game, map or flight)
+// the stick walks only while you're out walking (not in a mini-game, map or flight)
 input.stickZone = () => state === "play" && !focused && !ui.mapOpen && !(player && player.flight) && !seated;
-$("jumpBtn").addEventListener("pointerdown", e => { e.preventDefault(); if (state === "play" && player && !focused) { if (seated) stand(); else player.jump(); } });
+input.onPad = (type, id) => ui.toast(type === "connect" ? `Controller connected · ${/xbox|045e/i.test(id) ? "Xbox" : /dualsense|dualshock|054c|wireless controller/i.test(id) ? "PlayStation" : /pro controller|switch|057e/i.test(id) ? "Switch" : "gamepad"} · left stick walks, right stick looks` : "Controller disconnected", 2600);
+{ // touch interact button = the E key through the same handlers; lit while the prompt is up (html[data-prompt] from the HUD, else the prompt's own visibility)
+  const act = $("actBtn"), pr = $("prompt"), root = document.documentElement;
+  const sync = () => { const on = root.dataset.prompt ? root.dataset.prompt === "on" : !pr.hidden; act.classList.toggle("on", on); act.setAttribute("aria-disabled", on ? "false" : "true"); };
+  new MutationObserver(sync).observe(pr, { attributes: true, attributeFilter: ["hidden", "class"] });
+  new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ["data-prompt"] }); sync();
+  act.addEventListener("pointerdown", e => { e.preventDefault(); input.press("e"); });
+}
 
 /* ------------------------------------------------------------ loading */
-const notes = ["Inflating a small planet…", "Waking Blip up…", "Polishing five thousand pins…", "Loading the cannon (gently)…"];
+const notes = ["Inflating planet. Please stand back…", "Convincing Blip to get out of bed…", "Polishing 5,000 pins. Individually. Obviously.", "Checking cannon safety. Found none…"];
 let ni = 0;
 const noteTimer = setInterval(() => { $("loadnote").textContent = notes[++ni % notes.length]; }, 1400);
 Promise.all([world.loadEager(p => { $("loadfill").style.width = Math.round(p * 85) + "%"; }), world.loadCharacter(), world.load("moon")])
   .then(([, character]) => setup(character))
   .catch(err => {
     console.error(err); clearInterval(noteTimer);
-    $("loadnote").textContent = "The world didn't load here. Every project is still one click away.";
+    $("loadnote").textContent = "Planet failed to inflate. The projects survived. Browse them below.";
     $("enter").hidden = true;
   });
 
@@ -189,7 +199,7 @@ async function setup(character) {
   const pr = world.islands.planet.root, mr = world.islands.moon.root;
   planet = bodies.planet = new Body("planet", wpos(A("BODY_planet")), A("BODY_planet").userData.r);
   moon = bodies.moon = new Body("moon", wpos(A("BODY_moon")), A("BODY_moon").userData.r);
-  sizeMoonCannon(mr); layoutMoon(mr);   // before the colliders and spots below read their anchors
+  sizeMoonCannon(mr); layoutMoon(mr); layoutStair(pr); layoutIgloo(pr); l7InstallKiosk(pr); layoutMapTable(pr); layoutStudioPad(pr);   // before the colliders and spots below read their anchors
   for (const [name, o] of Object.entries(world.anchors)) {
     if (name.startsWith("PLATEAU_")) bodies[o.userData.body || "planet"].addPlateau(wpos(o), o.userData);
     if (name.startsWith("COL_")) { const p = wpos(o); (p.distanceTo(moon.centre) < moon.R + 8 ? moon : planet).colliders.push({ p, r: o.userData.r, wade: /^COL_pond_\d+$/.test(name) }); }   // wade: the player may walk through a pond collider (planet.collide), everything else still keeps out
@@ -246,11 +256,11 @@ async function setup(character) {
     // the cast. Its kiosk spot stays for the map, travel and goals (never prompts); clicking
     // the screen walks you over and plays the film.
     const film = p.id in FILMS;
-    spots.push({ id: p.id, kind: "kiosk", pos: wpos(stand), r: 3.0, body: stand.parent === mr || mr.getObjectByName(stand.name) ? "moon" : "planet", label: "Look closer", run: film ? () => spots.find(s => s.id === "play-" + p.id)?.run() : () => kiosk(p.id), target: screen, off: film ? () => true : undefined });
+    spots.push({ id: p.id, kind: "kiosk", pos: wpos(stand), r: 3.0, body: stand.parent === mr || mr.getObjectByName(stand.name) ? "moon" : "planet", label: "Take a peek", run: film ? () => spots.find(s => s.id === "play-" + p.id)?.run() : () => kiosk(p.id), target: screen, off: film ? () => true : undefined });
   }
-  spots.push({ id: "map", kind: "map", pos: wpos(A("MAP")), r: 2.6, body: "planet", label: "Open the map", run: openMap, target: pr.getObjectByName("STUDIO_maptable") });
+  spots.push({ id: "map", kind: "map", pos: wpos(A("MAP")), r: M1_R, body: "planet", label: "Find my bearings", run: openMap, target: pr.getObjectByName("STUDIO_maptable") });
   spots.push({ id: "cannon", kind: "cannon", pos: wpos(A("CANNON_planet")), r: 3.4, body: "planet", label: "", run: useCannon, target: pr.getObjectByName("MECH_cannon_barrel") });
-  spots.push({ id: "moon-cannon", kind: "cannon", pos: wpos(A("CANNON_moon")), r: 3.4, body: "moon", label: "Climb in and go home", run: fireHome, target: mr.getObjectByName("CANNON_moon_barrel") });
+  spots.push({ id: "moon-cannon", kind: "cannon", pos: wpos(A("CANNON_moon")), r: 3.4, body: "moon", label: "Take the express home", run: fireHome, target: mr.getObjectByName("CANNON_moon_barrel") });
   setupWheels(pr, mr); setupBores(pr, mr);   // open the muzzles before the camera occluders' BVH is built
   // camera occluders (BVH so a ray against the whole planet costs microseconds)
   const occ = [];
@@ -296,7 +306,7 @@ async function setup(character) {
   birds = new Birds(scene, planet.centre, planet.R, lowPower ? 6 : 10);
   butterflies = new Butterflies(scene, butterflyPlaces(pr)); butterflies.camera = camera;
   if (butterflies.migrated) { ui.puzzles.butterflies = []; ui.save(); }   // every visit starts at zero: a stored list is cleared, never restored (savestate.js)
-  butterflies.onAll = n => { sfx.play("star"); const say = () => { const el = document.getElementById("toast"); if (slate.active || (el && el.classList.contains("show") && !el.textContent.startsWith("Butterflies"))) sleep(0.5).then(say); else ui.toast(`All ${n} butterflies are yours! Watch them go.`, 3200); }; say(); };   // spiral, then scatter (life.js)
+  butterflies.onAll = n => { sfx.play("star"); const say = () => { const el = document.getElementById("toast"); if (slate.active || (el && el.classList.contains("show") && !el.textContent.startsWith("Butterflies"))) sleep(0.5).then(say); else ui.toast(`All ${n} butterflies found. And there they go. Typical.`, 3200); }; say(); };   // spiral, then scatter (life.js)
   const castLoaded = loadCast();
 
   for (const id of GAMES) await mountGame(id);
@@ -306,13 +316,14 @@ async function setup(character) {
   await castLoaded;   // the creatures pick resting spots clear of the casts
   await loadFauna();
   fontsReady.then(drawMapTable);
+  bootMapTable();   // the 3D board's table-top snapshot, built behind the loading bar so play never hitches
 
   if (rig.occFade) rig.occFade.warm(scene, camera);   // compile the occluder fade's materials before first paint (no hitch on the first fade)
   if (rig.stageFade) rig.stageFade.warm(scene, camera);
   renderer.compile(scene, camera);
   clearInterval(noteTimer);
   $("loadfill").style.width = "100%";
-  $("loadnote").textContent = `${PROJECTS.length} projects on one small planet (and its moon). ${ui.found.size ? `You've found ${ui.found.size}.` : ""}`;
+  $("loadnote").textContent = `${PROJECTS.length} projects. One tiny planet. One suspicious moon.${ui.found.size ? ` Welcome back. You’ve found ${ui.found.size}.` : ""}`;
   $("enter").disabled = false; $("enter").focus();
   state = "intro";
 }
@@ -326,7 +337,7 @@ function enter() {
   const end = camera.position.clone();
   camera.position.copy(player.position).addScaledVector(player.up, 60).add(new THREE.Vector3(30, 0, 40));
   introShot = { from: camera.position.clone(), to: end, t: 0 };
-  ui.hint(isTouch ? "Thumb down on the left to walk · drag on the right to look · tap things to go to them" : "<kbd>W A S D</kbd> walk <kbd>Drag</kbd> look <kbd>Space</kbd> jump <kbd>E</kbd> interact <kbd>M</kbd> map", 9000);
+  ui.hint(isTouch ? "Stick to walk · drag to look · tap to go there · the round button interacts" : "<kbd>W A S D</kbd> walk <kbd>Drag</kbd> look <kbd>Space</kbd> jump <kbd>E</kbd> interact <kbd>M</kbd> map", 9000);
   updateGoal();
 }
 let introShot = null;
@@ -379,16 +390,20 @@ function paintGround(mesh, body) {
   groundU = U;
 }
 
+/* L6: the GenAI prompt machine stands on the far side of its terrace from the kiosk (frame x/y in metres, yaw in rad), and its prompt
+   circle is 1.65 m (was 1.9), which leaves a gap of at least 1 m to the kiosk's 3 m circle (the flat top is only 4.2 m in radius) */
+const L6_VEND = { x: 3.5, y: 0.5, yaw: 0 }, L6_VEND_R = 1.4;   // V: beside the kiosk, same facing (yaw 0 = the kiosk's front), 0.3 m visual gap
 /* the Field effect floor, the GenAI prompt machine, and the moon's trampolines and stars */
 function setupExtras() {
   const pr = world.islands.planet.root;
   const fr = id => terraceFrame(A("PLATEAU_" + id), A("KIOSK_" + id), pr.getObjectByName("KIOSK_" + id + "_body"), planet.centre);
   if (A("PLATEAU_field")) fieldFloor = new FieldFloor(scene, fr("field"), pr.getObjectByName("KIOSK_field_screen"), { plateau: A("PLATEAU_field"), keepOut: A("COL_k_field") });
+  hiveInstall();   // "Walk the hive", beside the AI Momentum to Value kiosk
   if (A("PLATEAU_genai-after-hours")) {
-    vending = new Vending(scene, fr("genai-after-hours"));
+    vending = new Vending(scene, fr("genai-after-hours"), L6_VEND);
     toonify(vending.group); outline(vending.group, "#1E1F26", o => !o.material.map);
     planet.colliders.push(vending.collider);
-    spots.push({ id: "vending", kind: "extra", pos: vending.standPos, r: 1.9, body: "planet", label: "Pull the lever", run: () => ui.toast(vending.pull(), 4200), target: vending.lever });
+    spots.push({ id: "vending", kind: "extra", pos: vending.standPos, r: L6_VEND_R, body: "planet", label: "Generate nonsense", run: () => ui.toast(vending.pull(), 4200), target: vending.lever });
   }
   // every visit starts with the five stars back on the moon, like the butterflies: a stored list is cleared, never restored
   if ((ui.puzzles.stars || []).length) { ui.puzzles.stars = []; ui.save(); }
@@ -429,6 +444,7 @@ async function mountGame(id) {
     THREE, scene, camera, group, lowPower,
     palette: { paper: "#FBF8F1", ink: "#1E1F26", signal: "#2B2BEE", concrete: "#C4C5BE" },
     ui: { toast: t => ui.toast(t), status: t => ui.status(t), tools: l => ui.tools(l) },
+    sfx: ui.sfx,   // GB1: the engraver's detent ticks and lock cue
     isSolved: () => ui.found.has(id), solved: () => solvedGame(id),
     extra: { anchor: A("PINS_anchor"), pinGeometry: world.shared.getObjectByName("PinUnit").geometry },
   };
@@ -444,7 +460,7 @@ async function mountGame(id) {
   } catch (e) { console.error("game failed to start", id, e); return; }
   // the Pong court is centred on its (smaller) terrace, so its visitor stands closer
   const stand = group.localToWorld(new THREE.Vector3(0, 0, id === "gravity-pong" ? 2.6 : 4));
-  spots.push({ id, kind: "game", pos: stand, r: 2.8, body: "planet", label: byId[id].verb, run: () => enterGame(id), target: group });
+  spots.push({ id, kind: "game", pos: stand, r: id === "pin-art" ? L1_PIN_R : 2.8, body: "planet", label: byId[id].verb, run: () => enterGame(id), target: group });
 }
 
 function enterGame(id) {
@@ -501,11 +517,11 @@ function useCannon() {
   if (aim < AIM_STEPS) {
     aim++; ui.puzzles.cannon = aim; ui.save();
     sfx.play("cannon_wind");
-    ui.toast(aim < AIM_STEPS ? `The barrel swings round · ${aim} / ${AIM_STEPS}` : "Aimed at the moon. Climb in!");
+    ui.toast(aim < AIM_STEPS ? `Cannon alignment · ${aim} / ${AIM_STEPS}. What could go wrong?` : "Moon acquired. Please board your cannon.");
     updateGoal();
     return;
   }
-  fire("CANNON_planet", barrel, planet, moon, wpos(A("LAND_moon")), wfwd(A("LAND_moon")), () => { ui.toast("Moon landing. Something is waiting here.", 3000); updateGoal(); });
+  fire("CANNON_planet", barrel, planet, moon, wpos(A("LAND_moon")), wfwd(A("LAND_moon")), () => { ui.toast("Welcome to the moon. Something’s been expecting you.", 3000); updateGoal(); });
 }
 function fireHome() {
   fire("CANNON_moon", world.islands.moon.root.getObjectByName("CANNON_moon_barrel"), moon, planet, wpos(A("SPAWN")), wfwd(A("SPAWN")), () => updateGoal());
@@ -546,12 +562,12 @@ function sizeMoonCannon(mr) {
    KIOSK42_SHIFT along the deck (left and a little back, seen from the pad), and the flag stands on the far side, the
    point opposite its deck spot about the moon centre (facing away from the planet), kept FLAG_CLEAR m (arc) off any
    fallen-star spot or crater trampoline, upright and sunk FLAG_SINK m into the ground. */
-const KIOSK42_SHIFT = [-0.6, -0.4], FLAG_CLEAR = 2.0, FLAG_SINK = 0.06;
+const KIOSK42_AT = [-0.341, 0.9118, 0.2286], FLAG_CLEAR = 2.0, FLAG_SINK = 0.06;   // L4: KIOSK42_AT = unit direction of the kiosk's base from the moon centre (22 m of arc from the cannon, 9 m from the flag, 6.5 m from every star and trampoline)
 function layoutMoon(mr) {
   const d = deckFrame(), flag = mr.getObjectByName("MOON_flag"), col = mr.getObjectByName("COL_moon_flag");
   if (!flag || flag.userData.moved) return;
-  const step = d.x.clone().multiplyScalar(KIOSK42_SHIFT[0]).addScaledVector(d.y, KIOSK42_SHIFT[1]);
-  for (const nm of ["KIOSK_artboard-42_body", "KIOSK_artboard-42_screen", "KIOSK_artboard-42", "COL_k_artboard-42"]) { const o = mr.getObjectByName(nm); if (o) o.position.add(step); }
+  l4Kiosk(mr, d);
+  moonwalkInstall({ mr, moon, anchors: world.anchors, spots, ui, ascii, solve: () => kiosk("artboard-42"), log: m => new URLSearchParams(location.search).has("debug") && (window.__mwlog = window.__mwlog || []).push([+(performance.now() / 1000).toFixed(2), m]) });   // ASCII moonwalk (moonwalk.js): pad + crater guide beside the kiosk
   const M = wpos(A("BODY_moon")), R = A("BODY_moon").userData.r;
   const q = new THREE.Quaternion().setFromAxisAngle(d.x, Math.PI), u = flag.position.clone().sub(M).applyQuaternion(q).normalize();
   q.premultiply(new THREE.Quaternion().setFromUnitVectors(d.n.clone().applyQuaternion(q), u));   // the pole stood on the flat deck: stand it radial
@@ -563,6 +579,100 @@ function layoutMoon(mr) {
   flag.quaternion.premultiply(q); flag.position.copy(M).addScaledVector(u, R - FLAG_SINK);
   if (col) col.position.copy(M).addScaledVector(u, R);
   flag.userData.moved = true;
+}
+/* L4 / L7: stand a kiosk rigidly (body, screen, visitor spot, collider) with its base at `base`, upright on `up`, its screen turned toward `face`
+   (a tangent direction). Everything keeps its offset in the kiosk's own frame; the collider only moves. The visitor spot is put back on the ground. */
+function l4Place(objs, body, ctr, R, base, up, face) {
+  const z = face.clone().addScaledVector(up, -face.dot(up)).normalize(), x = new THREE.Vector3().crossVectors(up, z);
+  const qn = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, up, z));
+  const qr = qn.multiply(body.quaternion.clone().invert()), p0 = body.position.clone();
+  for (const o of objs) {
+    o.position.sub(p0).applyQuaternion(qr).add(base);
+    if (!/^COL_/.test(o.name)) o.quaternion.premultiply(qr);
+    if (/^KIOSK_[^_]*$/.test(o.name)) o.position.sub(ctr).setLength(R).add(ctr);   // the visitor spot (no _body/_screen suffix) stands on the ground
+    o.updateMatrix();
+  }
+}
+function l4Kiosk(mr, d) {   // the moon kiosk: far side of the moon from the home cannon, its screen turned toward the deck
+  const body = mr.getObjectByName("KIOSK_artboard-42_body"); if (!body || body.userData.moved) return;
+  const M = wpos(A("BODY_moon")), R = A("BODY_moon").userData.r, u = new THREE.Vector3(...KIOSK42_AT).normalize();
+  l4Place(["KIOSK_artboard-42_body", "KIOSK_artboard-42_screen", "KIOSK_artboard-42", "COL_k_artboard-42"].map(n => mr.getObjectByName(n)).filter(Boolean), body, M, R, M.clone().addScaledVector(u, R - 0.05), u, d.c.clone().sub(M));
+  body.userData.moved = true;
+}
+/* L3: the igloo moves to the quietest spot on the planet (found by a search: the point farthest from every spot, kiosk, creature and cannon, clear
+   of ponds, terraces, roads and trunks): L3_HOUSE_AT is its unit direction. AP, the door, smoke, knock spot, Blip's mark and the knock camera all live
+   in the house's own frame, so they come with it; only the collider (COL_studio) is moved by hand. The door turns toward the map table. */
+const L3_HOUSE_AT = [0.1607, -0.9628, 0.2174];
+function layoutIgloo(pr) {
+  const h = pr.getObjectByName("STUDIO_house"), col = A("COL_studio"), tab = A("PLATEAU_studio"); if (!h || h.userData.moved) return;
+  const C = planet.centre, u = new THREE.Vector3(...L3_HOUSE_AT).normalize(), base = C.clone().addScaledVector(u, planet.R - 0.08);
+  const z = wpos(tab).sub(base); z.addScaledVector(u, -z.dot(u)).normalize();
+  h.position.copy(base); h.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3().crossVectors(u, z), u, z)); h.updateMatrix();
+  if (col) { col.position.copy(base); col.updateMatrix(); }
+  h.userData.moved = true; pr.updateMatrixWorld(true);
+}
+/* L7: the tenth project's kiosk (sea-ai-maturity): a copy of Field's kiosk (body, screen, visitor spot, collider) stood on open ground beside a road,
+   L7_AT (unit direction of its base), its screen turned toward the road point L7_FACE. The existing screens/spots loop in setup() picks it up by name. */
+const L7_ID = "sea-ai-maturity", L7_AT = [-0.685, -0.6919, 0.2281], L7_FACE = [-0.6705, -0.6357, 0.3825];   // R: the far hemisphere (L7_FACE: a point 5 m ahead of the kiosk, so the hive lies in the open ground in front of it)
+function l7InstallKiosk(pr) {
+  const src = pr.getObjectByName("KIOSK_field_body"), scr = pr.getObjectByName("KIOSK_field_screen"), st = A("KIOSK_field"), col = A("COL_k_field");
+  if (!src || !scr || !st || !col || A("KIOSK_" + L7_ID)) return;
+  const rn = o => { o.traverse(k => { k.name = k.name.replace("field", L7_ID); }); return o; };
+  const body = rn(src.clone(true)), screen = rn(scr.clone(true)), stand = rn(st.clone(true)), coll = rn(col.clone(true));
+  stand.userData = { name: stand.name, project: L7_ID }; coll.userData = { name: coll.name, r: col.userData.r };
+  const C = planet.centre, u = new THREE.Vector3(...L7_AT).normalize(), base = C.clone().addScaledVector(u, planet.R - 0.1);
+  const toRoad = C.clone().addScaledVector(new THREE.Vector3(...L7_FACE).normalize(), planet.R).sub(base);
+  for (const o of [body, screen, stand, coll]) pr.add(o);
+  pr.updateMatrixWorld(true);
+  l4Place([body, screen, stand, coll], body, C, planet.R, base, u, toRoad);
+  pr.updateMatrixWorld(true);
+  world.anchors[stand.name] = stand; world.anchors[coll.name] = coll;
+}
+/* "Walk the hive" (hive.js): a 19-hex honeycomb in the L7 kiosk's own frame (local offsets from its visitor spot, so it follows the
+   kiosk if the planet is resized). Called from setupExtras, next to the Field floor, because it needs the kiosk screen's map and the plateaus registered. */
+let hive = null;
+function hiveInstall() {
+  const stand = A("KIOSK_" + L7_ID), body = world.islands.planet.root.getObjectByName("KIOSK_" + L7_ID + "_body"), screen = world.islands.planet.root.getObjectByName("KIOSK_" + L7_ID + "_screen");
+  if (!stand || !body || hive) return;
+  hive = new HiveFloor(scene, terraceFrame(stand, stand, body, planet.centre), {
+    centre: planet.centre, surface: d => planet.surface(d), screen, supports: player.supports,   // the pad caps are walkable supports: Blip's feet ride them
+    onSolved: () => setTimeout(() => { if (ui.discover(L7_ID)) { amb.select(L7_ID, { discover: true }); celebrate(); } updateGoal(); }, 1300),   // after the last move's toast has been read
+  });
+  if (new URLSearchParams(location.search).has("debug")) window.__hive = hive;   // test hook
+}
+/* L2: the lookout stair (terrace, column, steps, slabs, signal, deck, rail, its bench, secret spot and collider) turns as one rigid piece about
+   the planet centre, so it stays upright on the surface, STAIR_TO is the unit direction of the new terrace centre: it stands clear of every
+   other terrace, pond and spot (found by a clearance search; the old one stood 11 m from the cluster of creatures and the lookout bench).
+   Runs before the plateaus, roads, signposts and creatures read their anchors, so all of those follow. */
+const STAIR_TO = [0.7055, 0.6481, -0.2868], STAIR_PARTS = /^((TERRACE|LIP|PLATEAU)_monument|MONUMENT_column|HUB_slab_\d+|HUB_signal|STEP_\d+|LOOKOUT(_rail)?|SECRET_top|BENCHSPOT_monument|COL_monument)$/;
+function layoutStair(pr) {
+  const m = A("PLATEAU_monument"); if (!m || m.userData.stairMoved) return;
+  const C = planet.centre, from = wpos(m).sub(C).normalize(), q = new THREE.Quaternion().setFromUnitVectors(from, new THREE.Vector3(...STAIR_TO).normalize());
+  pr.traverse(o => { if (o.userData.isOutline || !STAIR_PARTS.test(o.name)) return; o.position.sub(C).applyQuaternion(q).add(C); o.quaternion.premultiply(q); o.updateMatrix(); });
+  m.userData.stairMoved = true; pr.updateMatrixWorld(true);
+}
+/* M1: the map table leaves the Studio terrace and stands on the Pin Art terrace, left of the entrance as a visitor walks in (Lumen stands on the right).
+   M1_AT = the table's centre in the Pin Art terrace's frame (x to the visitor's right, z toward the spawn, metres) and the horizontal direction from the
+   table to its stand point (the MAP anchor); the table, its "Open the map" anchor and its collider turn and move as one piece, so the stand keeps
+   its place on the table. The table's origin is the centre of its base, so it is centred on its own footprint. */
+const M1_AT = { x: -5.4, z: 5.9, face: [0.173, 0.985] }, M1_R = 2.2;
+function layoutMapTable(pr) {
+  const tab = pr.getObjectByName("STUDIO_maptable"), mp = A("MAP"), col = A("COL_map"), pin = A("PLATEAU_pin-art"), sp = A("SPAWN");
+  if (!tab || !mp || !pin || !sp || tab.userData.moved) return;
+  const C = planet.centre, V = THREE.Vector3, up0 = new V(0, 1, 0).applyQuaternion(tab.quaternion).normalize();
+  const c1 = wpos(pin), n1 = c1.clone().sub(C).normalize(), ez = wpos(sp).sub(c1); ez.addScaledVector(n1, -ez.dot(n1)).normalize();
+  const ex = new V().crossVectors(n1, ez), base0 = wpos(tab), base1 = c1.clone().addScaledVector(ex, M1_AT.x).addScaledVector(ez, M1_AT.z);
+  const h0 = wpos(mp).sub(base0); h0.addScaledVector(up0, -h0.dot(up0)).normalize();
+  const h1 = ex.clone().multiplyScalar(M1_AT.face[0]).addScaledVector(ez, M1_AT.face[1]).normalize();
+  const B = (h, u) => new THREE.Matrix4().makeBasis(h, u, new V().crossVectors(h, u));
+  const q = new THREE.Quaternion().setFromRotationMatrix(B(h1, n1).multiply(B(h0, up0).transpose()));
+  for (const o of [tab, mp, col]) { if (!o) continue; o.position.sub(base0).applyQuaternion(q).add(base1); o.quaternion.premultiply(q); o.updateMatrix(); }
+  tab.userData.moved = true; pr.updateMatrixWorld(true);
+}
+/* R: the Studio terrace stood empty once the map table (M1) and the igloo (L3) had left it. The bare pad is removed at runtime (mesh, lip, plateau anchor, so no road or
+   fork sign leads to it; planet.glb is untouched). Runs after the table has moved and before the plateaus, roads and signposts read their anchors. */
+function layoutStudioPad(pr) {
+  for (const n of ["TERRACE_studio", "LIP_studio", "PLATEAU_studio"]) { const o = pr.getObjectByName(n); if (o) o.parent.remove(o); delete world.anchors[n]; }
 }
 function setupBores(pr, mr) {
   const specs = [[pr, "MECH_cannon_barrel", "MOUTH_CANNON_planet"], [mr, "CANNON_moon_barrel", "MOUTH_CANNON_moon"]];
@@ -745,7 +855,38 @@ function setSoot(k) {
   const soot = new THREE.Color("#2A2830");
   sootMats.forEach(({ m, base }) => m.color.copy(base).lerp(soot, k * 0.88));
 }
-function cannonLabel() { return aim < AIM_STEPS ? "Turn the wheel to aim" : "Climb in!"; }
+function cannonLabel() { return aim < AIM_STEPS ? `Turn the wheel (${aim + 1}/${AIM_STEPS})` : "Climb in"; }
+/* K1: an in-world marker on the active cannon step. A cream hoop with an ink hull (two tones plus ink, no emissive, no
+   halo, no transparency): round the crank wheel while the wheel is the step, round the muzzle once aimed. They live in
+   the scene, follow the part's matrixWorld, and only show while Blip stands at the cannon spot in "play". */
+let K1marks = null;
+const _k1m = new THREE.Matrix4(), _k1q = new THREE.Quaternion(), _k1s = new THREE.Vector3(1, 1, 1), _k1z = new THREE.Vector3(0, 0, 1);
+function K1build() {
+  if (!barrel || !wheel) return null;
+  const mk = (R, tube) => {
+    const g = new THREE.TorusGeometry(R, tube, 10, 40), grp = new THREE.Group();
+    const m = new THREE.Mesh(g, new THREE.MeshToonMaterial({ color: "#FFF1CE" })); m.castShadow = false;
+    twoTone(m, () => true);
+    grp.add(m, inkShell(g)); grp.visible = false; grp.matrixAutoUpdate = false; scene.add(grp);
+    return grp;
+  };
+  const mouth = barrel.getObjectByName("MOUTH_CANNON_planet"), axis = mouth.position.clone().normalize();
+  const wl = new THREE.Matrix4().makeRotationY(Math.PI / 2);   // torus axis Z -> the wheel's axle, local X
+  const bl = new THREE.Matrix4().compose(mouth.position.clone().addScaledVector(axis, 0.65), _k1q.clone().setFromUnitVectors(_k1z, axis), _k1s);   // floats 0.65 m out past the mouth anchor, clear of the rim (muzzle radius 0.72)
+  return { wheel: mk(0.78, 0.1), barrel: mk(0.95, 0.1), wl, bl };   // tube 0.1 m: a band about 11 px at the 16.25 m home camera
+}
+function K1update(atSpot, t) {
+  if (!K1marks) K1marks = K1build();
+  const K = K1marks; if (!K) return;
+  const on = atSpot && state === "play", step = aim < AIM_STEPS ? "wheel" : "barrel";
+  K.wheel.visible = on && step === "wheel"; K.barrel.visible = on && step === "barrel";
+  const part = step === "wheel" ? wheel : barrel, grp = K[step];
+  if (!grp.visible) return;
+  part.updateWorldMatrix(true, false);
+  _k1m.copy(part.matrixWorld).multiply(step === "wheel" ? K.wl : K.bl);
+  grp.matrix.copy(_k1m).scale(_k1s.setScalar(1 + 0.05 * Math.sin(t * 5))); _k1s.set(1, 1, 1);
+  grp.matrixWorldNeedsUpdate = true;
+}
 
 /* ------------------------------------------------------------ film stages
    Orchestrator and The bracket do it again are films: each stage has a big play button that
@@ -756,7 +897,7 @@ function setupStages() {
   for (const id of Object.keys(FILMS)) {
     const play = A("PLAY_" + id), trig = pr.getObjectByName("TRIGGER_" + id);
     if (!play || !trig) continue;
-    spots.push({ id: "play-" + id, kind: "play", pos: wpos(play), r: 2.4, body: "planet", label: "Play the film", run: () => playFilm(id, trig), target: trig });
+    spots.push({ id: "play-" + id, kind: "play", pos: wpos(play), r: 2.4, body: "planet", label: "Roll the film", run: () => playFilm(id, trig), target: trig });
   }
   $("videoClose").onclick = closeVideo;
   $("video").addEventListener("click", e => { if (e.target.id === "video") closeVideo(); });
@@ -791,7 +932,7 @@ async function loadCast() {
   // each film family is its own rigged model (cave.glb, tour.glb); cast.glb's groups are the fallback
   const [g, cave, tour] = await Promise.all([load("assets/models/cast.glb"), load("assets/models/cave.glb"), maybe("assets/models/tour.glb")]);
   const rigged = { "orchestrator": cave, "the-bracket": tour };
-  for (const [id, key, label] of [["orchestrator", "CAST_orchestrator", "Say hi to the tribe"], ["the-bracket", "CAST_bracket", "Join the tour"]]) {
+  for (const [id, key, label] of [["orchestrator", "CAST_orchestrator", "Meet the locals"], ["the-bracket", "CAST_bracket", "Join the very serious tour"]]) {
     const r = rigged[id], src = r && r.scene.getObjectByName(key) ? r : g;
     if (!src) continue;
     const grp = src.scene.getObjectByName(key), spot = A("CAST_" + id + "_spot");
@@ -862,8 +1003,8 @@ async function loadCast() {
 const CAST_NAMES = { "orchestrator": "The tribe", "the-bracket": "The guide" };
 const CAST_TOAST = new Set(["orchestrator"]);   // casts that speak through the toast, not an in-world slate
 const CAST_LINES = {
-  "orchestrator": ["The whole tribe hops up to wave hello.", "The tribe grunts with approval. Ugg points at the big screen.", "Hello! Someone waves a berry at you."],
-  "the-bracket": ["“And on your left: the third bullet. Nobody remembers it.”", "The guide raises the little blue flag.", "“Please don't touch the slides.”"],
+  "orchestrator": ["The whole tribe waves. This is a big deal around here.", "The tribe approves. Ugg would like you to notice the very large screen.", "A friendly berry is offered. No one explains why."],
+  "the-bracket": ["“And on your left, the third bullet. Its purpose remains a mystery.”", "“Please follow the blue flag. It has more authority than I do.”", "“Please don’t touch the slides. They’re emotionally fragile.”"],
 };
 function castCheer(id, talk) {
   const c = casts[id]; if (!c) return;
@@ -1050,14 +1191,14 @@ function setupSecret() {
     tok.material = new THREE.MeshToonMaterial({ color: "#2B2BEE" });
     tok.position.copy(wpos(top)); scene.add(tok); topGlyph = tok;
     tok.visible = false;   // the stray blue hex on the lookout deck (shared-assets "Token" at SECRET_top) is hidden; the spot still works
-    spots.push({ id: "secret-top", kind: "secret", pos: wpos(top), r: 2.2, body: "planet", label: "Take in the view", target: tok,
-      run: () => { if (ui.findSecret("top", "You climbed all the way up.")) { for (let i = 0; i < 10; i++) fx.puff(wpos(top), { size: 0.3, color: new THREE.Color(["#FFC845", "#FF7A62", "#B9A2F2", "#7ED6B2"][i % 4]), life: 1.2, vel: new THREE.Vector3((Math.random() - 0.5) * 6, 3 + Math.random() * 3, (Math.random() - 0.5) * 6), grow: 1 }); player.play("Cheer"); } rig.distWanted = 20; } });
+    spots.push({ id: "secret-top", kind: "secret", pos: wpos(top), r: 2.2, body: "planet", label: "Admire everything", target: tok,
+      run: () => { if (ui.findSecret("top", "You took the stairs. Respect.")) { for (let i = 0; i < 10; i++) fx.puff(wpos(top), { size: 0.3, color: new THREE.Color(["#FFC845", "#FF7A62", "#B9A2F2", "#7ED6B2"][i % 4]), life: 1.2, vel: new THREE.Vector3((Math.random() - 0.5) * 6, 3 + Math.random() * 3, (Math.random() - 0.5) * 6), grow: 1 }); player.play("Cheer"); } rig.distWanted = 20; } });
   }
   const s = A("SECRET_ascii"); if (!s) return;
   secretGlyph = world.shared.getObjectByName("Token").clone();
   secretGlyph.material = new THREE.MeshToonMaterial({ color: "#1E1F26" });
   secretGlyph.position.copy(wpos(s)); scene.add(secretGlyph);
-  spots.push({ id: "secret", kind: "secret", pos: wpos(s).addScaledVector(planet.up(wpos(s)), -1.2), r: 2.0, body: "planet", label: "Look closer", run: () => { ascii.trigger(14); ui.findSecret("ascii", "Underneath, it was always lines."); }, target: secretGlyph });
+  spots.push({ id: "secret", kind: "secret", pos: wpos(s).addScaledVector(planet.up(wpos(s)), -1.2), r: 2.0, body: "planet", label: "Take a peek", run: () => { ascii.trigger(14); ui.findSecret("ascii", "Reality has switched to text mode."); }, target: secretGlyph });
 }
 const ripple = (() => {
   const m = new THREE.Mesh(new THREE.RingGeometry(0.96, 1, 96), new THREE.MeshBasicMaterial({ color: "#2B2BEE", transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide }));
@@ -1077,26 +1218,27 @@ function updateGoal() {
   if (!player) return;
   const f = ui.found, S = id => spots.find(s => s.id === id);
   const steps = [
-    ["pin-art", "Walk to the giant pinscreen and <b>push its pins</b> by hand"],
-    ["gravity-pong", "Head for the yellow court and <b>curve a shot</b> into the blue ring"],
-    ["brand-studio", "Find the hay.ag billboard and <b>match the mark</b>"],
-    ["engraver", "Find the peach terrace and <b>turn the dial</b> until the picture appears"],
-    ["field", "Visit the teal <b>screen kiosks</b> around the planet (Field)"],
-    ["genai-after-hours", "Another <b>kiosk</b>: GenAI After Hours"],
-    ["orchestrator", "Find the <b>cave</b> and play the cave family's film"],
-    ["the-bracket", "Join the <b>gallery tour</b> near the south pole and play its film"],
+    ["pin-art", "Find the giant pinscreen. <b>Poke it.</b> It can take it."],
+    ["gravity-pong", "Yellow court, blue ring. <b>Bend a shot</b> and blame gravity if you miss."],
+    ["brand-studio", "Find the hay.ag billboard and <b>make the mark</b>. No design degree required."],
+    ["engraver", "At the peach terrace, <b>turn the dial</b>. There’s an image in there somewhere."],
+    ["field", "Find the teal <b>Field kiosk</b>. The pixels are feeling interactive."],
+    ["genai-after-hours", "Find <b>GenAI After Hours</b> at its kiosk. AI, but after office hours."],
+    ["orchestrator", "Visit the <b>cave</b>. The family has made a film. Be polite."],
+    ["the-bracket", "Find the <b>gallery tour</b> down south. Serious art, unserious people."],
+    ["sea-ai-maturity", "Find the AI Momentum to Value <b>hive</b> and step on its five numbered pads."],
   ];
   const moonSteps = () => {
-    if (aim < AIM_STEPS) return ["Find the old <b>cannon</b> and turn its wheel to aim at the moon", S("cannon")];
-    if (player.body !== moon) return ["Climb into the <b>cannon</b> and fire yourself to the moon", S("cannon")];
-    return ["Find the last screen on the <b>moon</b>", S("artboard-42")];
+    if (aim < AIM_STEPS) return ["Find the old <b>cannon</b>. Point it at the moon. Try not to overthink it.", S("cannon")];
+    if (player.body !== moon) return ["Get into the <b>cannon</b>. Yes, you are the ammunition.", S("cannon")];
+    return ["One last screen. On the <b>moon</b>. Naturally.", S("artboard-42")];
   };
   let html, next = steps.find(([id]) => !f.has(id));
   const moonOpen = ui.puzzles.sawMoon && !f.has("artboard-42");
   if (moonOpen && (player.body === moon || aim > 0 || !next || ui.puzzles.moonFirst)) [html, goalSpot] = moonSteps();
   else if (next) { html = next[1]; goalSpot = S(next[0]); }
-  else if (!f.has("artboard-42")) { html = "Climb the spiral stair to the <b>lookout</b> and take in the view"; goalSpot = S("secret-top"); }
-  else { html = "All nine found. The planet is yours. Find a bench and watch the sunset."; goalSpot = null; }
+  else if (!f.has("artboard-42")) { html = "Climb to the <b>lookout</b>. There’s something up there worth seeing."; goalSpot = S("secret-top"); }
+  else { html = `All ${PROJECTS.length} found. You’ve seen the lot. Go sit somewhere. You’ve earned it.`; goalSpot = null; }
   ui.goal(state === "intro" ? null : html);
   drawMapTable();
 }
@@ -1107,7 +1249,7 @@ function checkLookout() {
   const d = player.position.clone().sub(planet.centre), h = d.length() - planet.surface(d.normalize());
   if (h < 6.4) return;
   ui.puzzles.sawMoon = true; ui.puzzles.moonFirst = true; ui.save();
-  ui.toast("From up here you can see <b>the moon</b>. And that old cannon down there is pointing at nothing yet…", 6000);
+  ui.toast("Well, there’s <b>the moon</b>. And that cannon down there is pointing at absolutely nothing. For now.", 6000);
   // turn the lens toward the moon so the nudge is something you can see
   const toMoon = moon.centre.clone().sub(player.position); toMoon.addScaledVector(player.up, -toMoon.dot(player.up));
   if (toMoon.lengthSq() > 1e-4) rig.fwd.copy(toMoon.normalize());
@@ -1125,7 +1267,7 @@ function setupStudio(pr) {
   if (house) installAP({ scene, loader: world.loader, house, toonify, outline, charInk: CHAR_INK, tween, sleep, slate, player, sfx, rig, fx }).then(ap => {
     if (!ap) return;
     window.__ap = ap;   // test hook (also reachable as __archipelago.ap)
-    spots.push({ id: "ap-door", kind: "ap", pos: ap.knockSpot(), r: 1.8, body: "planet", label: "Knock", run: () => ap.knock(), target: house, off: () => ap.busy });
+    spots.push({ id: "ap-door", kind: "ap", pos: ap.knockSpot(), r: 1.8, body: "planet", label: "Knock, knock", run: () => ap.knock(), target: house, off: () => ap.busy });
   }).catch(e => console.error("AP", e));
   const table = pr.getObjectByName("STUDIO_maptable");
   if (table) {
@@ -1136,8 +1278,47 @@ function setupStudio(pr) {
     table.add(mapFace);
   }
 }
+/* M2: once the board exists (built lazily when the player first comes within ~15 m of the table, or on the first map
+   open), the table top shows a baked snapshot of its northern face, re-rendered once per discovery. The flat painting
+   below stays only as the fallback (no WebGL, or the board not built yet). Everything hangs off mapFace, which is a
+   child of the table object, so moving the table moves this too. */
+let mapSnapFound = -1;
+function ensureBoardMap() {
+  if (boardMap) return boardMap;
+  try { boardMap = createBoardMap({ world, bodies, games, spots, player, groundU, renderer, stage: $("mapStage"), pinsEl: $("mapPins") }); ui.board = boardMap; }
+  catch (e) { console.error("board map failed", e); }
+  return boardMap;
+}
+function snapMapTable() {
+  if (!mapFace || !boardMap || !boardMap.snapshot || mapSnapFound === ui.found.size || ui.mapOpen) return false;
+  const snap = boardMap.snapshot(768, ui.found);
+  if (!snap) return false;
+  mapSnapFound = ui.found.size;
+  const S = 768, cv = document.createElement("canvas"); cv.width = cv.height = S;
+  const g = cv.getContext("2d");
+  g.fillStyle = "#B07A5A"; g.beginPath(); g.arc(S / 2, S / 2, S / 2, 0, 7); g.fill();   // the drum's wood shows round the coin
+  g.save(); g.beginPath(); g.arc(S / 2, S / 2, S / 2, 0, 7); g.clip(); g.drawImage(snap, 0, 0, S, S); g.restore();
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  if (mapFace.material.map) mapFace.material.map.dispose();
+  mapFace.material.map = t; mapFace.material.needsUpdate = true;
+  return true;
+}
+/* the board is built and the first snapshot taken at boot, behind the loading screen (bootMapTable). A discovery only marks the
+   snapshot stale; mapTableTick re-renders it the next time a panel, slate or the map is up, never mid-walk. */
+let mapTick = 0;
+function bootMapTable() {
+  if (!mapFace) return;
+  ensureBoardMap(); snapMapTable();
+}
+function mapTableTick() {   // every 15th frame; cheap unless the snapshot is stale and a panel or slate covers the refresh
+  if (!mapFace || !boardMap || mapSnapFound === ui.found.size || ++mapTick % 15) return;
+  if (state === "play" && !focused && !slate.active && !seated) return;
+  snapMapTable();
+}
 function drawMapTable() {
-  if (!mapFace || mapFound === ui.found.size) return;
+  if (!mapFace) return;
+  if (boardMap && boardMap.snapshot) return;   // the 3D snapshot owns the top: stale until the tick refreshes it
+  if (mapFound === ui.found.size) return;
   mapFound = ui.found.size;
   const S = 1024, cv = document.createElement("canvas"); cv.width = cv.height = S;
   const g = cv.getContext("2d");
@@ -1242,32 +1423,41 @@ function setupPonds(pr) {
 }
 
 /* ------------------------------------------------------------ fauna (tips and stories) + benches */
+/* L1: Pin Art's and Lumen's prompt circles grow from 2.8 m to 3.1 m, and Lumen stands at least L1_APART m (centre to centre) from Pin Art's prompt point,
+   on the terrace top (more than the 6.2 m the radii add up to), so their triggers never overlap. L5: only Gulp turns to look at you from L5_GULP_LOOK m (the others keep 9 m) */
+const L1_PIN_R = 3.1, L1_LUMEN_R = 3.1, L1_APART = 6.4, L5_GULP_LOOK = 16;
+function l1Apart() {   // Lumen's keep-out list: Pin Art's prompt point (L1_APART m), and the ground just past the terrace lip (a spot there hides behind the lip from the spawn side)
+  const pin = A("GAME_pin-art"), pl = A("PLATEAU_pin-art"), keep = [[pin.localToWorld(new THREE.Vector3(0, 0, 4)), L1_APART]];
+  const c = wpos(pl), n = c.clone().sub(planet.centre).normalize(), t = new THREE.Vector3(1, 0, 0).cross(n).normalize(), ang = (pl.userData.t1 * planet.R + 1.6) / planet.R;
+  for (let k = 0; k < 48; k++) keep.push([planet.centre.clone().addScaledVector(n.clone().multiplyScalar(Math.cos(ang)).addScaledVector(t.clone().applyAxisAngle(n, k * Math.PI / 24), Math.sin(ang)), planet.R), 2.0]);
+  return keep;
+}
 const FAUNA = [
-  { key: "FAUNA_hammer", name: "Lumen", near: "SPAWN", foot: 0.8, open: true, trick: trickLumen,   // open: a spot the touch shot can see from every side (not hemmed in by the pin wall and fence)
+  { key: "FAUNA_hammer", name: "Lumen", near: "SPAWN", foot: 0.8, open: true, apart: true, trick: trickLumen,   // open: a spot the touch shot can see from every side (not hemmed in by the pin wall and fence)
     beats: { touchOn: 1.14, touchOff: 1.94 }, lines: [
-    "Hello! <b>WASD</b> to walk, drag to look, <b>E</b> to use anything that glows a prompt.",
-    "Lost? Press <b>M</b>. The round table by the white house is a map too.",
-    "Nine projects live here. Eight on the planet, and one somewhere you'll have to look up to find.",
-    "Rather read than walk? <b>VIEW PROJECTS</b> at the top shows the whole list." ] },
+    "New here? <b>WASD</b> to walk, drag to look, <b>E</b> to poke anything with a prompt. Please poke responsibly.",
+    "Lost already? <b>M</b> opens the map. There’s also a round map table by the Pin Art gate. Two maps. Luxury.",
+    "Ten projects live here. Nine on the planet, one somewhere above your pay grade. Look up.",
+    "Not in a walking mood? Open <b>Menu → All the projects</b>. No judgment. Much." ] },
   { key: "FAUNA_stilts", name: "Tall Sid", near: "PLATEAU_monument", foot: 0.7, rMin: 5, benchGap: 6.2, trick: trickSid,   // benchGap: Sid's 2.8 m prompt stays clear of the monument bench's 2 m one
     beats: { pointOn: 2.86, pointOff: 3.7 }, lines: [
-    "That spiral stair goes all the way up. Step on the glowing disc at the top and take in the view. Best on the planet.",
-    "The white steps turn blue, one for every project you find.",
+    "That staircase? All the way up. Glowing disc at the top. Best view on the planet. I checked.",
+    "Every project you discover turns another white step blue. The stairs are keeping score.",
     "Psst. Click the blue ring above the lookout. Three times." ] },
-  { key: "FAUNA_ring", name: "Gulp", near: "POND_0", foot: 0.8, trick: trickGulp,
+  { key: "FAUNA_ring", name: "Gulp", near: "POND_0", foot: 0.8, gulp: true, trick: trickGulp,
     beats: { reach: 0.53, close: 0.635, release: 0.4 }, lines: [
-    "The benches are for sitting. Press <b>E</b> on one and watch the sun go down.",
-    "Anshul makes things you can poke: pins, balls, dials, films.",
-    "I tried to eat the moon once. Too far." ] },
+    "The benches are for sitting, not decoration. <b>E</b> to test one. Sunset included.",
+    "Anshul makes things for poking. Pins, balls, dials, films. I prefer swallowing.",
+    "Tried to swallow the moon once. Still working on the distance." ] },
   { key: "FAUNA_gnash", name: "Chomp", near: "CAST_orchestrator_spot", base: caveMouth, rMin: 0, rMax: 6, foot: 0.7, trick: trickChomp,
     beats: { snap: 1.12 }, lines: [
-    "The cave family made a film. Hit the big button to watch <b>Orchestrator</b>.",
-    "Don't touch the fire. Or do. It's a toy fire.",
-    "There's another film down south. A gallery tour, very serious." ] },
+    "The cave family made a film. Big button. <b>Orchestrator</b>. Popcorn not included.",
+    "Don’t touch the fire. Actually, it’s fake. Be reckless.",
+    "Another film down south. A gallery tour. Everyone’s taking it suspiciously seriously." ] },
   { key: "FAUNA_scoot", name: "Zip", near: "CANNON_planet", foot: 1.0, clear: 2.3, rMax: 18, trick: trickZip, beats: { patOn: 1.0, patOff: 2.6 }, lines: [
-    "This old cannon? Nobody remembers where it points.",
+    "This cannon? Very old. Very powerful. Absolutely no instruction manual.",
     () => ui.puzzles.sawMoon ? "You've seen the moon, then. Turn the wheel twice and hop in." : "Climb the lookout and look up. You'll see what it's for.",
-    "Landing's soft. Mostly." ] },
+    "Landing is soft. That’s the official story." ] },
 ];
 const fauna = [];
 /* Chomp waits just outside the cave, not on the film stage: a point 3.5 m beyond the shell's
@@ -1357,7 +1547,7 @@ async function loadFauna() {
     const body = g.scene.getObjectByName(f.key), near = A(f.near), at = f.base && f.base();
     if (!body || !near) return;
     const base = at ? at.pos : wpos(near);
-    const spotArgs = [base, f.rMin ?? 4, f.rMax ?? 12, i * 1.7, f.clear ?? f.foot, [...(at ? at.keepOut : []), ...(f.benchGap ? Object.entries(world.anchors).filter(([n]) => n.startsWith("BENCHSPOT_")).map(([, a]) => [wpos(a), f.benchGap]) : [])]];
+    const spotArgs = [base, f.rMin ?? 4, f.rMax ?? 12, i * 1.7, f.clear ?? f.foot, [...(at ? at.keepOut : []), ...(f.benchGap ? Object.entries(world.anchors).filter(([n]) => n.startsWith("BENCHSPOT_")).map(([, a]) => [wpos(a), f.benchGap]) : []), ...(f.apart ? l1Apart() : [])]];
     const q = (f.open && restSpot(...spotArgs, true)) || restSpot(...spotArgs);   // no open spot in range: the usual one rather than no creature
     if (!q) return;
     // each creature appears once, so it keeps the loaded object itself (a plain clone would
@@ -1388,7 +1578,7 @@ async function loadFauna() {
     fauna.push(c);
     planet.colliders.push({ p: q, r: f.foot * 0.8 });
     nearProps.push({ o: holder, hull: null, c: q.clone().addScaledVector(up, 0.8), r: 1.1, follow: holder, lift: up.clone().multiplyScalar(0.8) });   // follows the creature: Zip's lap takes it 1.9 m off its spot
-    spots.push({ id: "fauna-" + f.key, kind: "fauna", pos: q, r: 2.8, body: "planet", label: `Talk to ${f.name}`, run: () => talk(c), target: holder, off: () => c.busy });
+    spots.push({ id: "fauna-" + f.key, kind: "fauna", pos: q, r: f.apart ? L1_LUMEN_R : 2.8, body: "planet", label: `Talk to ${f.name}`, run: () => talk(c), target: holder, off: () => c.busy });
   });
   // benches face the ponds and the view from the monument
   const bench = g.scene.getObjectByName("BENCH");
@@ -1403,7 +1593,7 @@ async function loadFauna() {
     b.updateMatrixWorld(true);
     const seat = b.localToWorld(new THREE.Vector3(0, 0.45, 0.05));
     planet.colliders.push({ p: pos, r: 0.85 });
-    spots.push({ id: "bench-" + name, kind: "bench", pos: pos.clone().addScaledVector(fwd, 1.2), r: 2.0, body: "planet", label: "Sit for a while", run: () => sit({ seat, fwd, up, front: pos.clone().addScaledVector(fwd, 1.2) }), target: b });
+    spots.push({ id: "bench-" + name, kind: "bench", pos: pos.clone().addScaledVector(fwd, 1.2), r: 2.0, body: "planet", label: "Do absolutely nothing", run: () => sit({ seat, fwd, up, front: pos.clone().addScaledVector(fwd, 1.2) }), target: b });
   }
 }
 /* play a creature clip, cross-fading from whatever it was doing; returns the clip length */
@@ -1465,6 +1655,7 @@ const blipMats = () => { const l = []; player.figure.traverse(o => { if (o.isMes
    passes into you (a glow that lingers and fades) */
 const LUMEN_PEARL = new THREE.Color("#FBE6A8"), LUMEN_GOLD = new THREE.Color("#FFC53A");
 const lumenHands = c => c.hand || (c.hand = [...new Set((() => { const a = []; c.holder.traverse(o => { if (o.isMesh && o.material && o.material.name === "Fauna_Hand") a.push(o.material); }); return a; })())]);
+const LUMEN_SHOT = { yaws: [0, 0.35, -0.35, 0.7, -0.7, Math.PI, Math.PI - 0.35, Math.PI + 0.35, Math.PI - 0.7, Math.PI + 0.7], dist: 6.9, lift: 0, mid: 0.6, up: 1.9, glide: 2.5 };   // round 6: the touch shot (lens distance, lift, look point along Lumen -> Blip, look height, glide home)
 const LUMEN_SHOT_HEADINGS = [0, Math.PI, 0.5, Math.PI - 0.5, -0.5, Math.PI + 0.5];   // rad off the side of the you-Lumen line, both sides
 async function trickLumen(c) {
   await approach(c, 1.2);
@@ -1472,7 +1663,8 @@ async function trickLumen(c) {
   // a side-on shot of the touch, like the other tricks: across the line between you, on whichever side is clear
   const look = c.pos.clone().lerp(player.position, 0.5).addScaledVector(c.up, 0.75);
   const across = player.position.clone().sub(c.pos); across.addScaledVector(c.up, -across.dot(c.up)).normalize();
-  rig.focus(clearShot(look, new THREE.Vector3().crossVectors(c.up, across).normalize(), c.up, LUMEN_SHOT_HEADINGS, 4.6, 0.8), look, c.up.clone());
+  { const o = LUMEN_SHOT, lk = c.pos.clone().addScaledVector(across, o.mid).addScaledVector(c.up, o.up), pin = spots.find(x => x.id === "pin-art");   // round 6: scored like Chomp's shot (c3Shot), on the visitor's side first (from the Pin Art entrance), so a post, the map table or the frame never hides the touch
+    rig.focus(c3Shot(c, across, lk, o, pin ? pin.pos : null), lk, c.up.clone()); }
   const mats = blipMats(), warm = new THREE.Color("#FF6A2E");   // red-orange: on Blip's teal a yellower glow reads as green
   const light = new THREE.PointLight("#FFB25C", 0, 4, 2); player.group.add(light); light.position.set(0, 0.8, 0.4);
   let t = 0;
@@ -1489,7 +1681,7 @@ async function trickLumen(c) {
   });
   rest(c); player.play("Cheer");
   await tween(1.8, k => { for (const m of mats) m.emissiveIntensity = 0.13 * (1 - k); light.intensity = 3.5 * (1 - k); });
-  rig.release(); rig.snap(player);
+  rig.release(); rig.glideHome(LUMEN_SHOT.glide);   // smooth return, like Chomp's
   for (const m of mats) m.emissiveIntensity = 0;
   for (const m of lumenHands(c)) { m.emissive.copy(LUMEN_PEARL); m.emissiveIntensity = 0.32; }   // glow off after the trick
   light.removeFromParent(); light.dispose();
@@ -1584,15 +1776,36 @@ async function trickGulp(c) {
     spitTrail = false; if (!window.__spitRaw) { rig.release(); rig.distWanted = rig.dist = rig.coll = rig.home; rig.pitch = rig.homePitch; rig.lift = 0; rig.yawV = rig.pitchV = 0; }   // the default follow framing (home distance and pitch, any zoom or drag undone; __spitRaw skips it, test hook)
     rig.snap(player); fx.dust(player.position, player.up); state = "play"; updateGoal();   // snap like travel(): the flight left the rig facing back at the project
     c.tipSpoken = true; c.flow = { trickEnd: flowClock, slateOpen: flowClock };   // Gulp's trick is the flight; its one slate (PTOO plus the tip) opens on landing
-    slate.say({ name: "Gulp", html: `<b>PTOO!</b> Spat you out at <b>${byId[dest.id].name}</b>. ${c.tip || ""}`, ms: 5200, base: () => player.position, up: () => player.up, top: 1.9, stay: true });
+    slate.say({ name: "Gulp", html: `<b>PTOO!</b> Express delivery to <b>${byId[dest.id].name}</b>. No refunds. ${c.tip || ""}`, ms: 5200, base: () => player.position, up: () => player.up, top: 1.9, stay: true });
     res();
   }));
   await sleep(Math.max(0, sp - B.release));
 }
 
 /* Chomp chatters, hops at you and snaps the air right in front of your nose: you jump back */
+const C3_SHOT = { dist: 7.6, lift: 0, mid: 0.8, up: 1.7, glide: 2.5 };   // round 6 C3: a side-on close shot of Chomp and Blip (he hops back to 2.3 m: the look point is half of that; `up` keeps the slate that pops above Chomp's head in the frame); the lens eases home over `glide` s
+/* C3: the clearest side shot: both sides and several yaw offsets, two distances; each candidate casts a grid of rays (along the Chomp-Blip line, 25 % past both ends, low to slate height) and the one with the fewest blocked wins */
+function c3Shot(c, across, look, o = C3_SHOT, pref = null) {   // pref: a world point; with equal scores the candidate nearest the line look -> pref wins (the visitor's side)
+  const side = new THREE.Vector3().crossVectors(c.up, across).normalize(), cands = [];
+  for (const d of [o.dist, o.dist + 0.8, o.dist - 0.8]) for (const a of o.yaws || [0, 0.4, -0.4, 0.8, -0.8, 1.2, -1.2, Math.PI, Math.PI - 0.4, Math.PI + 0.4, Math.PI - 0.8, Math.PI + 0.8, Math.PI - 1.2, Math.PI + 1.2])
+    cands.push(look.clone().addScaledVector(side.clone().applyAxisAngle(c.up, a), d).addScaledVector(c.up, o.lift));
+  if (pref) { const pd = pref.clone().sub(look); pd.addScaledVector(c.up, -pd.dot(c.up)).normalize(); const key = f => { const v = f.clone().sub(look); v.addScaledVector(c.up, -v.dot(c.up)); return v.normalize().angleTo(pd); }; cands.sort((a, b) => key(a) - key(b)); }
+  let best = null, bestN = 1e9;
+  for (const f of cands) {
+    const right = new THREE.Vector3().crossVectors(c.up, look.clone().sub(f)).normalize();   // a grid across the view, covering both creatures and 25 % beyond, floor to slate height
+    let n = 0;
+    for (let i = -3; i <= 3; i++) for (let j = 0; j < 5; j++) { const q = look.clone().addScaledVector(right, i * (o.cell || 0.9)).addScaledVector(c.up, -o.up + 0.45 + j * 0.85); if (lensBlocked(f, q)) n++; }
+    if (n < bestN) { bestN = n; best = f; if (!n) return f; }
+  }
+  return best;
+}
 async function trickChomp(c) {
   await approach(c, 1.6);   // the hop lands 0.32 m forward: the snap stops just short of your nose
+  { // C3: closer side shot for the whole act (the clearShot / rig.focus pattern of trickLumen), eased back to home at the end
+    const across = player.position.clone().sub(c.pos); across.addScaledVector(c.up, -across.dot(c.up)).normalize();
+    const look = c.pos.clone().addScaledVector(across, C3_SHOT.mid).addScaledVector(c.up, C3_SHOT.up);
+    rig.focus(c3Shot(c, across, look), look, c.up.clone());
+  }
   lifeKick(c, 0.45, KICK.chompLean); await sleep(0.3);   // leans back, lid shut, before the lunge
   const len = act(c, "Snap");
   await sleep(c.beats.snap);
@@ -1609,6 +1822,7 @@ async function trickChomp(c) {
   player.play("Land");
   await sleep(Math.max(0.3, len - c.beats.snap - 0.45));
   await blipWorried();   // he is shaken, not cheerful; the slate follows in talk()
+  rig.release(); rig.glideHome(C3_SHOT.glide);   // C3: smooth return to the home follow pose (no snap)
 }
 
 /* Blip's worried, agitated reaction to nearly being eaten: a flinch back (lean + squash), a fast side-to-side shake, both arms
@@ -1873,7 +2087,7 @@ function updateFauna(dt) {
   for (const c of fauna) {
     // turn to face the visitor when they come close, back to the resting pose otherwise
     if (!c.driving && !c.busy) {
-      const toP = player.position.clone().sub(c.holder.position), near = player.body === planet && toP.length() < 9;
+      const toP = player.position.clone().sub(c.holder.position), near = player.body === planet && toP.length() < (c.gulp ? L5_GULP_LOOK : 9);
       if (near) { const m = new THREE.Object3D(); orientTo(m, c.up, toP); c.holder.quaternion.slerp(m.quaternion, 1 - Math.exp(-dt * 3)); }
       else c.holder.quaternion.slerp(c.home, 1 - Math.exp(-dt * 1));
     }
@@ -1945,9 +2159,9 @@ function setupViewSpot() {
   lk.updateMatrixWorld(true);
   const top = g.localToWorld(new THREE.Vector3(0, 0.13, 0)), up = planet.up(top);
   const fwd = top.clone().sub(lk.getWorldPosition(new THREE.Vector3())); fwd.addScaledVector(up, -fwd.dot(up)).normalize();   // out over the rail
-  Object.assign(sp, { pos: top.clone().addScaledVector(up, -0.13), r: VIEW_AT.reach, target: g, label: "Take in the view",
+  Object.assign(sp, { pos: top.clone().addScaledVector(up, -0.13), r: VIEW_AT.reach, target: g, label: "Admire everything",
     run: () => {
-      if (ui.findSecret("top", "You climbed all the way up.")) for (let i = 0; i < 10; i++) fx.puff(top, { size: 0.3, color: new THREE.Color(["#FFC845", "#FF7A62", "#B9A2F2", "#7ED6B2"][i % 4]), life: 1.2, vel: new THREE.Vector3((Math.random() - 0.5) * 6, 3 + Math.random() * 3, (Math.random() - 0.5) * 6), grow: 1 });
+      if (ui.findSecret("top", "You took the stairs. Respect.")) for (let i = 0; i < 10; i++) fx.puff(top, { size: 0.3, color: new THREE.Color(["#FFC845", "#FF7A62", "#B9A2F2", "#7ED6B2"][i % 4]), life: 1.2, vel: new THREE.Vector3((Math.random() - 0.5) * 6, 3 + Math.random() * 3, (Math.random() - 0.5) * 6), grow: 1 });
       sit({ view: true, seat: top, fwd, up, front: top });
     } });
 }
@@ -1986,9 +2200,10 @@ function stand() {
   });
 }
 
-/* ------------------------------------------------------------ map (two hemispheres + the moon) */
+/* ------------------------------------------------------------ map: the board game (boardmap.js), built on first open */
+/* the studio map table's painted map (drawMapTable) still uses two hemispheres */
 function svgOf(pos, body) {
-  if (body === "moon") return { x: 0, y: -86 };   // destinations() spreads the moon's stops apart
+  if (body === "moon") return { x: 0, y: -86 };
   const d = pos.clone().sub(planet.centre).normalize();
   const cx = d.y >= 0 ? -48 : 48;
   return { x: cx + d.x * 42 * (d.y >= 0 ? 1 : -1), y: 10 + d.z * 42 };
@@ -1998,21 +2213,17 @@ function destinations() {
   for (const s of spots) {
     if (!["game", "kiosk", "cannon"].includes(s.kind)) continue;
     const pid = byId[s.id] ? s.id : null;
-    const locked = s.body === "moon" && aim < AIM_STEPS ? "aim the cannon at the moon first" : null;
+    const locked = s.body === "moon" && aim < AIM_STEPS ? "Moon access denied. Aim the cannon first." : null;
     d.push({ id: s.id, label: pid ? byId[pid].name.replace("The bracket does it again", "The bracket") : s.id === "cannon" ? "Cannon" : "Moon cannon", project: pid, svg: svgOf(s.pos, s.body), size: s.kind === "game" ? 7 : 4.5, locked });
   }
-  // every moon stop maps to the same point (one small landing deck): set them side by side,
-  // far enough apart that their 12-unit tap circles don't cover each other
-  const moon = d.filter(x => x.svg.y === -86);
-  moon.forEach((x, i) => { x.svg = { x: (i - (moon.length - 1) / 2) * 24, y: -86 }; });
   return d;
 }
+let boardMap = null;
 function openMap() {
   if (!player || state === "loading" || state === "intro") return;
   if (focused) exitFocus();
-  const back = `<circle class="hemi" cx="-48" cy="10" r="44"/><circle class="hemi" cx="48" cy="10" r="44"/><rect class="hemi moon" x="-26" y="-100" width="52" height="28" rx="14"/>
-    <text class="hemi-label" x="-48" y="64" text-anchor="middle">North</text><text class="hemi-label" x="48" y="64" text-anchor="middle">South</text>`;
-  ui.openMap(destinations(), { svg: svgOf(player.position, player.body.name) }, travel, back);
+  ensureBoardMap();
+  ui.openMap(destinations(), travel);
 }
 $("mapBtn").onclick = () => (ui.mapOpen ? ui.closeMap() : openMap());
 async function travel(id) {
@@ -2024,6 +2235,7 @@ async function travel(id) {
   const look = s.target ? wpos(s.target) : s.pos;
   const fwd = look.clone().sub(s.pos); fwd.addScaledVector(b.up(s.pos), -fwd.dot(b.up(s.pos)));
   player.place(b, s.pos, fwd.lengthSq() > 1e-4 ? fwd.normalize() : player.facing);
+  rig.release(); rig.dist = rig.distWanted = rig.home; rig.pitch = rig.homePitch; rig.zoomBase = null; rig.occHit = null;   // C4: arrive at the home view, not on the zoom/pitch/lock the last place left (a stale zoom or drag, a focus shot)
   rig.snap(player);
   if (b === planet && suited) { suited = false; setHelmet(helmet, false, "off", 0.15); }   // back home by the map: the bubble comes off
   await wait(120); $("fade").classList.remove("on"); state = "play"; updateGoal();
@@ -2102,7 +2314,7 @@ input.on("key", k => {
   if (k === "enter" && state === "intro") return enter();
   if (k === "m") return ui.mapOpen ? ui.closeMap() : openMap();
   if (k === " " && state === "play") player.jump();
-  if (k === "e" && state === "play" && near) useSpot(near);
+  if ((k === "e" || k === "enter") && state === "play" && near) useSpot(near);   // Enter is an alias of E (not in any UI text)
 });
 
 const raycaster = new THREE.Raycaster(); const ndc = new THREE.Vector2();
@@ -2118,7 +2330,7 @@ input.on("click", p => {
   ndc.set(p.nx, p.ny); raycaster.setFromCamera(ndc, camera);
   const hit = raycaster.intersectObjects([world.islands.planet.root, world.islands.moon.root, ...Object.values(games).map(g => g.ctx.group), ...(secretGlyph ? [secretGlyph] : [])], true)[0];
   if (!hit) return;
-  if (hit.object.name === "HUB_signal") { signalSpin = 1; if (++signalClicks >= 3) ui.findSecret("signal", "The signal answers."); return; }
+  if (hit.object.name === "HUB_signal") { signalSpin = 1; if (++signalClicks >= 3) ui.findSecret("signal", "Someone picked up."); return; }
   // tapped something with an interaction? walk to it and use it
   for (const s of spots) {
     if (!s.target) continue;
@@ -2142,6 +2354,7 @@ let hoverSpot = null, placeSeen = null;
 const _mPrev = new THREE.Vector3(), _mDir = new THREE.Vector3(), _mX = new THREE.Vector3();
 function motionFrame(dt) {
   if (!(dt > 0)) return;
+  input.pollPads(dt);
   camera.getWorldDirection(_mDir);
   const v = _mPrev.angleTo(_mDir) / dt, dir = Math.sign(_mX.crossVectors(_mPrev, _mDir).dot(camera.up));
   _mPrev.copy(_mDir);
@@ -2241,7 +2454,7 @@ function loopBody(dt, t) {
     if (pd < Infinity && (!near || pd < bd + 0.12)) near = prev;
   }
   const label = near ? (near.kind === "cannon" && near.id === "cannon" ? cannonLabel() : near.label) : null;
-  ui.prompt(label && !ui.mapOpen && !ui.panelOpen && !seated && !(booth && booth.isOpen) ? label : null, () => near && useSpot(near));
+  ui.prompt(label && !ui.mapOpen && !ui.panelOpen && !seated && !(booth && booth.isOpen) ? label : null, () => near && useSpot(near), near);   // UB: `near` also feeds the bulb's contextual hint
   const shownSpot = label && !ui.mapOpen && !ui.panelOpen && !seated && !(booth && booth.isOpen) ? near : null;
   if (!near) hoverSpot = null;   // walking away re-arms; a panel / map / booth hiding the prompt does not
   else if (shownSpot && shownSpot !== hoverSpot) { hoverSpot = shownSpot; amb.hover(shownSpot.id); }
@@ -2253,6 +2466,7 @@ function loopBody(dt, t) {
     barrel.quaternion.copy(barrel.userData.q0).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), off));
     wheel.quaternion.copy(wheel.userData.q0).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), aimShown * 2.4));
     [barrel, wheel].forEach(o => { const h = o.userData.hull; if (h) { h.quaternion.copy(o.quaternion); h.scale.copy(o.scale); } });
+    K1update(!!shownSpot && shownSpot.id === "cannon", t);   // K1: the marker on the active step
   }
   if (secretGlyph) secretGlyph.rotation.y += dt * 1.2;
   if (topGlyph) topGlyph.rotation.y += dt * 1.5;
@@ -2262,24 +2476,31 @@ function loopBody(dt, t) {
   const sig = world.anchors.HUB_signal;
   if (sig) { signalSpin = Math.max(0, signalSpin - dt * 0.6); sig.rotation.z += dt * (0.4 + signalSpin * 9); }
   updateFauna(dt);
+  mapTableTick();
   birds && birds.update(dt, t);
   grass && grass.update(t, player.body === planet ? player.position : null);
   if (fieldFloor) {   // toast on every tile change, so it always names what the kiosk screen shows
     const ch = fieldFloor.update(dt, t, player.body === planet && state === "play" ? player : null);
-    if (ch) ui.toast(ch.first ? `<b>${ch.name}</b>: one of Field's ${FIELD_EFFECTS.length} effects. It follows your feet.` : `<b>${ch.name}</b> · ${ch.i + 1} / ${FIELD_EFFECTS.length}`, ch.first ? 2400 : 1400);
+    if (ch) ui.toast(ch.html || `<b>${ch.name}</b> · ${ch.i + 1}/${FIELD_EFFECTS.length}`, 1400);   // GB3: one format, "Name · n/9" 
+  }
+  if (hive) {   // toast on each move hex Blip steps onto: "Title · n/5"
+    if (grass && !hive.grassDone) hive.clearGrass(grass);
+    const ch = hive.update(dt, t, player.body === planet && state === "play" ? player : null);
+    if (ch) ui.toast(ch.html, 2600);
   }
   if (vending) vending.update(dt, t, camera);
+  moonwalkUpdate(dt, t, player, state);
   if (moonPlay) {
     player.gravity = player.body === moon ? 0.35 : 1;   // floaty on the moon
     const ev = moonPlay.update(dt, t, player, fx);
     if (ev.bounce) { sfxAir = true; sfx.play("trampoline"); }
     if (ev.grab) sfx.play("star");
     if (ev.done) sfx.play("star", { gain: 1.4 });
-    if (ev.bounce && !ui.puzzles.bounced) { ui.puzzles.bounced = true; ui.save(); ui.toast("Boing. Land on it again to go higher.", 2600); }
-    if (ev.grab) ui.toast(`A fallen star · ${ev.grab} / ${moonPlay.stars.length}`, 2200);
+    if (ev.bounce && !ui.puzzles.bounced) { ui.puzzles.bounced = true; ui.save(); ui.toast("Boing. Again, but with more ambition.", 2600); }
+    if (ev.grab) ui.toast(`Pocketed a star · ${ev.grab} / ${moonPlay.stars.length}`, 2200);
     if (ev.star) { ui.puzzles.stars = moonPlay.found; ui.save(); }
     if (ev.done) {
-      ui.toast("All five stars are home. Look up: a new constellation beside the moon.", 6000); player.play("Cheer");
+      ui.toast("Five stars rescued. Look up. The sky made you something.", 6000); player.play("Cheer");
       // cut to a held shot of the whole constellation (from much of the moon it is below the horizon, and a glide there would pass through the moon), then cut back
       const v = moonPlay.skyShot(camera);
       rig.focus(v.pos, v.look, v.up); camera.position.copy(v.pos); rig.look.copy(v.look); camera.up.copy(v.up);
@@ -2340,7 +2561,7 @@ const nearProps = [];
 let viewOff = 0;
 function render(dt) { inkResize(renderer); if (ascii.active) ascii.render(scene, camera, dt); else renderer.render(scene, camera); }
 
-window.__archipelago = { get helmet() { return helmet; }, get suited() { return suited; }, slate, get booth() { return booth; }, get boothProp() { return boothProp; }, renderer, camera, get sky() { return sky; }, get groundU() { return groundU; }, fx, get grass() { return grass; }, get moonPlay() { return moonPlay; }, get vending() { return vending; }, get fieldFloor() { return fieldFloor; }, fauna, signPosts, get birds() { return birds; }, get butterflies() { return butterflies; }, sit, stand, get seated() { return seated; }, get sitFly() { return sitFly; }, get seatOrbit() { return seatOrbit; }, SEATCAM, SITFLY, get seatYaw() { return seatYaw; }, checkLookout, world, ui, rig, travel, spots, games, bodies, get player() { return player; }, get state() { return state; }, get audio() { return amb; }, fire, useCannon, updateGoal,
+window.__archipelago = { get boardMap() { return boardMap; }, openMap, get helmet() { return helmet; }, get suited() { return suited; }, slate, get booth() { return booth; }, get boothProp() { return boothProp; }, renderer, camera, get sky() { return sky; }, get groundU() { return groundU; }, fx, get grass() { return grass; }, get moonPlay() { return moonPlay; }, get vending() { return vending; }, get fieldFloor() { return fieldFloor; }, fauna, signPosts, get birds() { return birds; }, get butterflies() { return butterflies; }, sit, stand, get seated() { return seated; }, get sitFly() { return sitFly; }, get seatOrbit() { return seatOrbit; }, SEATCAM, SITFLY, get seatYaw() { return seatYaw; }, checkLookout, world, ui, rig, travel, spots, games, bodies, get player() { return player; }, get state() { return state; }, get audio() { return amb; }, fire, useCannon, updateGoal,
   // test hooks: skip the opening move; step the simulation without waiting for frames
   skipIntro() { introShot = null; rig.snap(player); },
   step(n = 1, dt = 1 / 60) { stepping = true; for (let i = 0; i < n; i++) loopBody(dt, (stepT += dt)); stepping = false; clock.getDelta(); } };
@@ -2354,8 +2575,16 @@ let stepT = 0;
    collider (deck height only: the stair winds below it) keeps Blip out of the prop. */
 let booth = null, boothProp = null, boothC = null, boothN = null, lookC = null;
 const BOOTH_AT = { ang: -150, r: 1.75, rad: 0.36, lens: 62 };
+/* L2 follow-up: the dress-up lens is placed relative to the moon's bearing from the deck. layoutStair turned the whole stair (deck, bench, booth) about
+   the planet centre, so the real bearing no longer is the one the lens was approved with (it swung the lens into the lookout bench). The lens takes the
+   bearing the moon had before the move: the moon's centre carried through the same rotation (BOOTH_STAIR_FROM = the old PLATEAU_monument direction). */
+const BOOTH_STAIR_FROM = [0.6040, 0.7660, -0.2198];
+const boothMoon = { get centre() {
+  const C = planet.centre, q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(...BOOTH_STAIR_FROM).normalize(), new THREE.Vector3(...STAIR_TO).normalize());
+  return moon.centre.clone().sub(C).applyQuaternion(q).add(C);
+} };
 function setupBooth(pr) {
-  booth = new Booth({ player, renderer, scene, moon, camera, onOpen: boothOpen, onClose: boothClose, sfx, sound: amb });
+  booth = new Booth({ player, renderer, scene, moon: boothMoon, camera, onOpen: boothOpen, onClose: boothClose, sfx, sound: amb });
   const lk = pr.getObjectByName("LOOKOUT"); if (!lk) return;
   lk.geometry.computeBoundingBox();
   const a = BOOTH_AT.ang * Math.PI / 180, x = Math.cos(a) * BOOTH_AT.r, z = Math.sin(a) * BOOTH_AT.r;
@@ -2369,7 +2598,7 @@ function setupBooth(pr) {
   boothC = boothProp.getWorldPosition(new THREE.Vector3()); boothN = planet.up(boothC);
   lookC = lk.getWorldPosition(new THREE.Vector3());
   const stand = lk.localToWorld(new THREE.Vector3(x * 0.55, lk.geometry.boundingBox.max.y, z * 0.55));
-  spots.push({ id: "booth", kind: "booth", pos: stand, r: 1.6, body: "planet", label: "Step into the photo booth", target: boothProp,
+  spots.push({ id: "booth", kind: "booth", pos: stand, r: 1.6, body: "planet", label: "Give Blip a makeover", target: boothProp,
     run: () => {   // turn side-on to the booth so the lens can swing round in front of Blip
       const t = new THREE.Vector3().crossVectors(boothN, boothC.clone().sub(player.position)).normalize();
       if (t.lengthSq() > 0.5) player.facing.copy(t);
