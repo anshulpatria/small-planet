@@ -39,10 +39,15 @@ import { createSitButterfly, SITFLY, headPerch } from "./sitfly.js";
 import { Slate } from "./slate.js";
 import { installSid } from "./sid.js";
 import { installAP } from "./ap.js";
+import { CONSTELLATION_NAME } from "./copy-r7.js";   // R7 T5
 import { installGulp } from "./gulp.js";
 import { installChomp } from "./chomp.js";
 import { installLumen } from "./lumen.js";
 import { installZip } from "./zip.js";
+import { installRestart } from "./restart.js";   // R7 T3
+import { installNight } from "./night.js";   // R7 T6
+import { installRadio } from "./radio.js";   // R7 T7
+import { installRewards } from "./rewards.js";   // R7 T8
 import { installTrees, dropLobes, clearRoads, roadDistance, ROAD_HALF } from "./trees.js";
 import { GreatCircleArc } from "./arc.js";
 import { createHelmet, setHelmet, updateHelmet } from "./helmet.js";
@@ -140,7 +145,7 @@ fitCamera();
 addEventListener("resize", () => { fitCamera(); renderer.setSize(innerWidth, innerHeight, false); });
 // the stick walks only while you're out walking (not in a mini-game, map or flight)
 input.stickZone = () => state === "play" && !focused && !ui.mapOpen && !(player && player.flight) && !seated;
-input.onPad = (type, id) => ui.toast(type === "connect" ? `Controller connected · ${/xbox|045e/i.test(id) ? "Xbox" : /dualsense|dualshock|054c|wireless controller/i.test(id) ? "PlayStation" : /pro controller|switch|057e/i.test(id) ? "Switch" : "gamepad"} · left stick walks, right stick looks` : "Controller disconnected", 2600);
+input.onPad = (type, id) => ui.toast(type === "connect" ? `Controller connected · ${/xbox|045e/i.test(id) ? "Xbox" : /dualsense|dualshock|054c|wireless controller/i.test(id) ? "PlayStation" : /pro controller|switch|057e/i.test(id) ? "Switch" : "gamepad"} · left stick walks, right stick looks, A interacts, X jumps, Start is the menu` : "Controller disconnected", 2600);
 { // touch interact button = the E key through the same handlers; lit while the prompt is up (html[data-prompt] from the HUD, else the prompt's own visibility)
   const act = $("actBtn"), pr = $("prompt"), root = document.documentElement;
   const sync = () => { const on = root.dataset.prompt ? root.dataset.prompt === "on" : !pr.hidden; act.classList.toggle("on", on); act.setAttribute("aria-disabled", on ? "false" : "true"); };
@@ -306,7 +311,8 @@ async function setup(character) {
   birds = new Birds(scene, planet.centre, planet.R, lowPower ? 6 : 10);
   butterflies = new Butterflies(scene, butterflyPlaces(pr)); butterflies.camera = camera;
   if (butterflies.migrated) { ui.puzzles.butterflies = []; ui.save(); }   // every visit starts at zero: a stored list is cleared, never restored (savestate.js)
-  butterflies.onAll = n => { sfx.play("star"); const say = () => { const el = document.getElementById("toast"); if (slate.active || (el && el.classList.contains("show") && !el.textContent.startsWith("Butterflies"))) sleep(0.5).then(say); else ui.toast(`All ${n} butterflies found. And there they go. Typical.`, 3200); }; say(); };   // spiral, then scatter (life.js)
+  butterflies.rig = rig; butterflies.onCue = (c, k) => { if (c === "burst") sfx.play("star", { gain: 1.7 }); else sfx.play("butterfly", { gain: 0.55 + 0.2 * k }); };   // R7 F1: the swell (existing sprites, rising gain) + the camera beat (life.js)
+  butterflies.onAll = n => { const say = () => { const el = document.getElementById("toast"); if (slate.active || (el && el.classList.contains("show") && !el.textContent.startsWith("Butterflies"))) sleep(0.5).then(say); else ui.toast(`All ${n} butterflies found. And there they go. Typical.`, 3200); }; say(); };   // spiral, then scatter (life.js)
   const castLoaded = loadCast();
 
   for (const id of GAMES) await mountGame(id);
@@ -325,6 +331,11 @@ async function setup(character) {
   $("loadfill").style.width = "100%";
   $("loadnote").textContent = `${PROJECTS.length} projects. One tiny planet. One suspicious moon.${ui.found.size ? ` Welcome back. You’ve found ${ui.found.size}.` : ""}`;
   $("enter").disabled = false; $("enter").focus();
+  installRestart();   // R7 T3: "Restart journey" in #menu and on the dock
+  addEventListener("r7:letter", () => sfx.play("star", { gain: 0.55 }));   // R7: Spell GITHUB, each letter lands with a tick
+  const r7radio = installRadio({ amb });   // R7 T7: the radio "world voice" greets once per session after the intro
+  installNight({ scene, sky, ui, camera, spots, bodies, onNight: () => r7radio.wow() });   // R7 T6: night reveal for the first secret + the moon/sun toggle; switching the sun off plays the Wow! signal and shows the UFO
+  installRewards({ ui, sfx, scene, camera, renderer, butterflies, player, bodies, slate, getMoonPlay: () => moonPlay });   // R7 T8: wallpapers, printable Blip, DP badges
   state = "intro";
 }
 
@@ -496,7 +507,8 @@ $("focusExit").onclick = exitFocus;
 $("focusInfo").onclick = () => focused && ui.openPanel(focused.id);
 
 function kiosk(id) {
-  const first = ui.discover(id); amb.select(id, { discover: first });
+  const first = games[id] ? false : ui.discover(id);   // R7 T3: a peek never marks a mini-game done; only solving it does (solvedGame)
+  amb.select(id, { discover: first });
   if (first) celebrate();
   player.play("Wave");
   ui.openPanel(id);
@@ -1264,7 +1276,7 @@ let mapFace = null, mapFound = -1;
 function setupStudio(pr) {
   const nm = pr.getObjectByName("STUDIO_name"), house = pr.getObjectByName("STUDIO_house");
   if (nm) nm.visible = false;   // the 3D "Anshul Patria" name board stays hidden; AP stands in its place (ap.js)
-  if (house) installAP({ scene, loader: world.loader, house, toonify, outline, charInk: CHAR_INK, tween, sleep, slate, player, sfx, rig, fx }).then(ap => {
+  if (house) installAP({ scene, loader: world.loader, house, toonify, outline, charInk: CHAR_INK, tween, sleep, slate, player, sfx, rig, fx, state: () => ({ moonFound: ui.found.has("artboard-42"), allFound: ui.allFound, butterflies: butterflies ? { got: butterflies.collected, total: butterflies.total } : null }) }).then(ap => {
     if (!ap) return;
     window.__ap = ap;   // test hook (also reachable as __archipelago.ap)
     spots.push({ id: "ap-door", kind: "ap", pos: ap.knockSpot(), r: 1.8, body: "planet", label: "Knock, knock", run: () => ap.knock(), target: house, off: () => ap.busy });
@@ -1618,6 +1630,7 @@ async function talk(c) {
   c.tip = typeof line === "function" ? line() : line; c.tipSpoken = false;
   c.line++;
   faceEachOther(c);
+  slate.armTyping(c.tip); sfx.voice(c.name, { text: c.tip, ready: () => slate.active, ...(c.key === "FAUNA_gnash" ? { emoteWhen: () => c.current === c.actions.Snap, emoteDelay: (c.beats.snap - 0.12) * 1000 } : {}), reveal: (pl, t0, now, stop) => slate.startReveal(pl, t0, now, stop) });   // R7 T7: opening emotion now; the line's babble starts when the slate pops (the animation-then-slate order below is unchanged)
   player.frozen = true;
   try { await c.trick(c); }
   catch (e) { console.error(c.name, e); }
@@ -1656,7 +1669,6 @@ const blipMats = () => { const l = []; player.figure.traverse(o => { if (o.isMes
 const LUMEN_PEARL = new THREE.Color("#FBE6A8"), LUMEN_GOLD = new THREE.Color("#FFC53A");
 const lumenHands = c => c.hand || (c.hand = [...new Set((() => { const a = []; c.holder.traverse(o => { if (o.isMesh && o.material && o.material.name === "Fauna_Hand") a.push(o.material); }); return a; })())]);
 const LUMEN_SHOT = { yaws: [0, 0.35, -0.35, 0.7, -0.7, Math.PI, Math.PI - 0.35, Math.PI + 0.35, Math.PI - 0.7, Math.PI + 0.7], dist: 6.9, lift: 0, mid: 0.6, up: 1.9, glide: 2.5 };   // round 6: the touch shot (lens distance, lift, look point along Lumen -> Blip, look height, glide home)
-const LUMEN_SHOT_HEADINGS = [0, Math.PI, 0.5, Math.PI - 0.5, -0.5, Math.PI + 0.5];   // rad off the side of the you-Lumen line, both sides
 async function trickLumen(c) {
   await approach(c, 1.2);
   const B = c.beats, len = act(c, "Touch");
@@ -2302,6 +2314,7 @@ function sfxFrame(vr0) {
 /* ------------------------------------------------------------ input */
 input.on("key", k => {
   if (k === "escape") {
+    if (ui.closeR7Modal()) return;   // R7: any module's .r7-modal closes first (ui.js's capture handler usually got there already)
     if (booth && booth.isOpen) return booth.close();
     if (videoOpen) return closeVideo();
     if (ui.mapOpen) return ui.closeMap();
@@ -2330,7 +2343,7 @@ input.on("click", p => {
   ndc.set(p.nx, p.ny); raycaster.setFromCamera(ndc, camera);
   const hit = raycaster.intersectObjects([world.islands.planet.root, world.islands.moon.root, ...Object.values(games).map(g => g.ctx.group), ...(secretGlyph ? [secretGlyph] : [])], true)[0];
   if (!hit) return;
-  if (hit.object.name === "HUB_signal") { signalSpin = 1; if (++signalClicks >= 3) ui.findSecret("signal", "Someone picked up."); return; }
+  if (hit.object.name === "HUB_signal") { signalSpin = 1; if (++signalClicks >= 3) { signalClicks = 0; ui.findSecret("signal", "Someone picked up."); if (window.__night) window.__night.goDark(); else if (window.__radio) window.__radio.signal(); } return; }   // R7: and someone does: the sun goes off, a UFO hangs in the sky, the radio voice; three more clicks bring the day back (it also dawns by itself after 90 s)
   // tapped something with an interaction? walk to it and use it
   for (const s of spots) {
     if (!s.target) continue;
@@ -2364,7 +2377,7 @@ const clock = new THREE.Clock();
 renderer.setAnimationLoop(() => { if (!stepping) loopBody(Math.min(clock.getDelta(), 0.05), clock.elapsedTime); });
 let stepping = false;   // test hook: step() owns the loop while it runs
 function loopBody(dt, t) {
-  if (ui.mode === "list" && state !== "loading") return;
+  if (ui.mode === "list" && state !== "loading") { input.pollPads(dt); return; }   // R7 B4: the pad must work in the list view too
   if (!innerWidth || !innerHeight) return;
 
   if (state === "loading" || state === "intro") {
@@ -2497,10 +2510,10 @@ function loopBody(dt, t) {
     if (ev.grab) sfx.play("star");
     if (ev.done) sfx.play("star", { gain: 1.4 });
     if (ev.bounce && !ui.puzzles.bounced) { ui.puzzles.bounced = true; ui.save(); ui.toast("Boing. Again, but with more ambition.", 2600); }
-    if (ev.grab) ui.toast(`Pocketed a star · ${ev.grab} / ${moonPlay.stars.length}`, 2200);
+    if (ev.grab) ui.toast(`Pocketed a star for ${CONSTELLATION_NAME} · ${ev.grab} / ${moonPlay.stars.length}`, 2200);
     if (ev.star) { ui.puzzles.stars = moonPlay.found; ui.save(); }
     if (ev.done) {
-      ui.toast("Five stars rescued. Look up. The sky made you something.", 6000); player.play("Cheer");
+      ui.toast(`Five stars rescued. Look up: that’s ${CONSTELLATION_NAME}. The sky made you something.`, 6000); player.play("Cheer");
       // cut to a held shot of the whole constellation (from much of the moon it is below the horizon, and a glide there would pass through the moon), then cut back
       const v = moonPlay.skyShot(camera);
       rig.focus(v.pos, v.look, v.up); camera.position.copy(v.pos); rig.look.copy(v.look); camera.up.copy(v.up);

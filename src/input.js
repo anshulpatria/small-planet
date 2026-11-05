@@ -6,19 +6,40 @@
    and a quick still tap there is the old tap-to-go (main.js click handler); there is no touch jump gesture, so stick,
    centre drag and tap all work at once (each finger is its own pointerId). Enter = E on desktop (main.js key handler).
 
-   Gamepad (I1, standard mapping, polled once a frame from main's motionFrame via pollPads):
+   Gamepad (I1 + R7 B4, standard mapping, polled once a frame from main's motionFrame via pollPads; the list view polls too):
      left stick   walk (radial dead zone 0.15; to 0.50 = walk 5.0 m/s, 0.50 to 0.90 = run blend, 0.90+ = run 7.75 m/s)
      right stick  camera yaw / pitch (same sign as a drag)
-     bottom face  (A on Xbox, Cross on DualSense, B on Switch)   = Space (jump)
-     right / left face (B, X; Circle, Square; A, Y)               = E (interact)
-     Start / Options / +                                          = Escape
-     Back / Create / Share / -                                    = M (map)
-     D-pad        = the arrow keys (walk)
-   Buttons are sent as real KeyboardEvents on window, so every keyboard listener (this one, ui.js's Escape and Say hi
-   handlers, a seated Blip's "any key") sees a pad exactly as it sees the keyboard. */
+     A  (bottom face)  confirm: the intro's Enter button, or the focused button in any open overlay; out in the world it is
+                       interact (E) while a prompt is up, else jump (Space)
+     B  (right face)   back / close = Escape (main.js and ui.js close whatever is on top, including any .r7-modal)
+     X, Y              jump (Space)
+     LB, RB            step into / out of the Collector's dock (D-pad moves along the coins, A goes there)
+     Start             the menu (opens it; Start again closes it)
+     Back / Create     the map (M)
+     D-pad, left stick when ANY overlay is open (intro, menu, panel, map, list, booth, film, finale, .r7-modal):
+                       move keyboard focus between the visible buttons (spatial), A clicks the focused one. The focus look is
+                       the existing html.kbd style (a thicker ink edge); nothing is added to .btn-cel.
+     D-pad (nothing open) = the arrow keys (walk)
+   The held D-pad arrows and the single-shot taps (E, Space, Escape, M) are real KeyboardEvents on window, so the keyboard
+   listeners (this one, ui.js's Escape and Say hi handlers, a seated Blip's "any key") see a pad exactly as they see the
+   keyboard. Confirm and focus moves are done directly on the DOM (el.click / el.focus), the way a Tab + Enter would. In a
+   focused mini-game (body.focus) A and the D-pad are left to the game (games/padcursor.js reads the pad itself); only B
+   (leave), Start, and the focus-bar buttons (stepped into with LB / RB) are handled here. */
+
 
 const PAD_DEAD = 0.15, PAD_WALK_TOP = 0.5, PAD_RUN_FULL = 0.9, PAD_LOOK_PX = 400;   // look rate at full tilt = 400 px/s of drag
-const PAD_KEYS = [[0, " "], [1, "e"], [2, "e"], [8, "m"], [9, "Escape"], [12, "ArrowUp"], [13, "ArrowDown"], [14, "ArrowLeft"], [15, "ArrowRight"]];
+const PAD_ARROWS = [[12, "ArrowUp"], [13, "ArrowDown"], [14, "ArrowLeft"], [15, "ArrowRight"]];   // held while nothing is open (walk)
+const NAV_DIR = { 12: [0, -1], 13: [0, 1], 14: [-1, 0], 15: [1, 0] };
+const NAV_DELAY = 380, NAV_EVERY = 130, NAV_STICK = 0.6;   // ms before the first repeat / between repeats; stick tilt that counts as a press
+const FOCUSABLE = "button, a[href], input, select, textarea, [tabindex]:not([tabindex='-1'])";
+const OVERLAYS = [   // topmost first: [selector of the open overlay root, selector of its pad targets (default FOCUSABLE)]
+  ".r7-modal", "#finale.open", "#menu:not([hidden])", "#video.open", "#booth.open", "#panel.open", "#map.open", "#list.open", "#intro:not(.gone)"];
+function shown(el, dock) {   // a real, on-screen, clickable-looking element (a faded dock coin still counts: focusing it wakes the dock)
+  if (!el || el.disabled || el.hidden || el.getAttribute("aria-hidden") === "true") return false;
+  if (!el.getClientRects().length) return false;
+  const cs = getComputedStyle(el);
+  return cs.visibility !== "hidden" && cs.display !== "none" && cs.pointerEvents !== "none" || (dock && cs.visibility !== "hidden");
+}
 const WALK_OVER_RUN = 5.0 / 7.75;   // main/player.js WALK_SPEED / RUN_SPEED: the run band starts at exactly walking speed
 
 export class Input {
@@ -36,8 +57,14 @@ export class Input {
     this.padKeys = new Set();
     this.pads = new Map();    // connected standard pads: index -> id
     this.onPad = null;        // (type: "connect" | "disconnect", id) set by main (toasts)
+    this.padBtns = new Set(); // pad buttons held last poll (edge detection for the action layer)
+    this.nav = { key: null, t0: 0, last: 0 };   // D-pad / stick focus-move repeat
+    this.dockNav = false;     // LB / RB stepped into the dock
+    this.usingPad = false;    // the last thing the player touched was a pad (a real key or pointer clears it)
+    this.ovSeen = null;       // the overlay root we last auto-focused into
 
     addEventListener("keydown", e => {
+      if (e.isTrusted) this.usingPad = false;
       if (e.target.closest && e.target.closest("input, textarea")) return;
       const k = e.key.toLowerCase();
       // Enter on a focused HUD button / link belongs to the browser (it clicks it); anywhere else Enter is E (main.js)
@@ -48,6 +75,12 @@ export class Input {
     });
     addEventListener("keyup", e => this.keys.delete(e.key.toLowerCase()));
     addEventListener("blur", () => this.keys.clear());
+    addEventListener("pointerdown", () => { this.usingPad = false; }, true);
+
+    // touch jump (R7 B2): an extra round button next to the interact one = Space through the same handlers as the keyboard.
+    // It is its own pointer target, so it works while the stick is held and after any drag.
+    const jump = document.getElementById("jumpBtn");
+    if (jump) jump.addEventListener("pointerdown", e => { e.preventDefault(); this.press(" "); });
 
     // touch: the stick is the fixed ring in the bottom-left corner; every other finger on the scene looks around.
     // Main sets `stickZone` to say when walking is possible at all (playing, no mini-game, no map).
@@ -134,11 +167,11 @@ export class Input {
     for (const p of live) if (!this.pads.has(p.index)) { this.pads.set(p.index, p.id); this.onPad && this.onPad("connect", p.id); }
     for (const [i, id] of [...this.pads]) if (!seen.has(i)) { this.pads.delete(i); this.onPad && this.onPad("disconnect", id); }
     const P = this.pad; P.vx = P.vy = P.mag = 0; P.active = false;
-    const want = new Set();
+    const held = new Set();
     let lookX = 0, lookY = 0, best = 0;
     for (const p of live) {
       const ax = p.axes || [], bt = p.buttons || [];
-      for (const [b, k] of PAD_KEYS) if (bt[b] && (bt[b].pressed || bt[b].value > 0.5)) want.add(k);
+      for (let b = 0; b < bt.length; b++) if (bt[b] && (bt[b].pressed || bt[b].value > 0.5)) held.add(b);
       const lx = ax[0] || 0, ly = ax[1] || 0, raw = Math.hypot(lx, ly);
       if (raw > best) {
         best = raw;
@@ -160,12 +193,125 @@ export class Input {
     }
     if (!P.active) P.run = false;
     if (this.lookEnabled && (lookX || lookY)) { this.look.dx += lookX * PAD_LOOK_PX * dt; this.look.dy += lookY * PAD_LOOK_PX * dt; }
-    // buttons become real key events (edge-triggered); never into a text field
+    // buttons: edge-triggered actions; the D-pad is also the arrow keys (walk) while nothing is open
     const typing = document.activeElement && document.activeElement.closest && document.activeElement.closest("input, textarea");
-    if (typing) want.clear();
+    if (typing) held.clear();
+    const prev = this.padBtns; this.padBtns = held;
+    const edges = [...held].filter(b => !prev.has(b));
+    const root = this.overlay(), navMode = !!root || this.dockNav;
+    if (root !== this.ovSeen) { this.ovSeen = root; if (root && this.usingPad) this.focusFirst(root); }
+    if (this.dockNav && (root || document.body.classList.contains("focus"))) this.dockNav = false;
+    // left stick steers the focus too while something is open (and does not walk Blip away behind it)
+    let stickDir = null;
+    if (root && P.active) { stickDir = Math.abs(P.vx) > Math.abs(P.vy) ? (P.vx > 0 ? 15 : 14) : (P.vy > 0 ? 13 : 12); if (Math.hypot(P.vx, P.vy) < NAV_STICK) stickDir = null; }
+    if (root) { P.vx = P.vy = P.mag = 0; P.active = false; P.run = false; }
+    for (const b of edges) this.padAction(b, root);
+    // focus-move repeat: D-pad (or the stick) held in a direction
+    const dirBtn = navMode ? [12, 13, 14, 15].find(b => held.has(b)) : undefined, dir = dirBtn !== undefined ? dirBtn : stickDir;
+    if (navMode && dir != null) {
+      const now = performance.now();
+      if (this.nav.key !== dir) { this.nav.key = dir; this.nav.t0 = this.nav.last = now; this.navMove(NAV_DIR[dir], root); }
+      else if (now - this.nav.t0 > NAV_DELAY && now - this.nav.last > NAV_EVERY) { this.nav.last = now; this.navMove(NAV_DIR[dir], root); }
+    } else this.nav.key = null;
+    const want = new Set();
+    if (!navMode) for (const [b, k] of PAD_ARROWS) if (held.has(b)) want.add(k);
     for (const k of want) if (!this.padKeys.has(k)) this.padKey("keydown", k);
     for (const k of [...this.padKeys]) if (!want.has(k)) this.padKey("keyup", k);
     this.padKeys = want;
+  }
+
+  /* the topmost open overlay root (or null); order = OVERLAYS */
+  overlay() {
+    // (the hint bubble is NOT an overlay here: a game opens it by itself and it can stay up after you leave, which swallowed A at the
+    // next game's prompt. B / Escape still closes it through ui.js.)
+    for (const sel of OVERLAYS) {
+      const els = document.querySelectorAll(sel);
+      for (let i = els.length - 1; i >= 0; i--) {
+        const el = els[i];
+        if (sel !== ".r7-modal" || (!el.hidden && el.getAttribute("aria-hidden") !== "true" && el.getClientRects().length && getComputedStyle(el).visibility !== "hidden")) return el;
+      }
+    }
+    return null;
+  }
+  targets(root) {
+    const dock = root.id === "dock";
+    return [...root.querySelectorAll(FOCUSABLE)].filter(el => shown(el, dock) && el.tabIndex >= 0 && !el.closest("[inert]"));
+  }
+  focusFirst(root) {
+    const t = this.targets(root); if (!t.length) return;
+    const skip = el => el.matches(".panel-close, [aria-label^='Close' i], #listBack");
+    this.focusEl(t.find(el => !skip(el)) || t[0]);
+  }
+  focusEl(el) {
+    document.documentElement.classList.add("kbd");   // the existing keyboard-focus look (index.html clears it on the next pointerdown)
+    try { el.focus({ preventScroll: false, focusVisible: true }); } catch (e) { el.focus(); }
+  }
+  /* spatial focus move: the nearest visible target in the pressed direction, with a penalty for drifting off-axis */
+  navMove(d, root) {
+    root = root || (this.dockNav ? document.getElementById("dock") : null); if (!root) return;
+    this.usingPad = true;
+    const t = this.targets(root), cur = document.activeElement && root.contains(document.activeElement) && t.includes(document.activeElement) ? document.activeElement : null;
+    if (!cur) { this.focusFirst(root); return; }
+    const c = cur.getBoundingClientRect(), cx = c.left + c.width / 2, cy = c.top + c.height / 2;
+    let best = null, bs = Infinity;
+    for (const el of t) {
+      if (el === cur) continue;
+      const r = el.getBoundingClientRect(), dx = r.left + r.width / 2 - cx, dy = r.top + r.height / 2 - cy;
+      const along = dx * d[0] + dy * d[1], across = Math.abs(dx * d[1] - dy * d[0]);
+      if (along < 2) continue;
+      const sc = along + across * 2.2;
+      if (sc < bs) { bs = sc; best = el; }
+    }
+    if (best) this.focusEl(best);
+  }
+  /* what each pad button does on its press */
+  padAction(b, root) {
+    this.usingPad = true;
+    const body = document.body, inGame = body.classList.contains("focus"), cl = document.documentElement.classList;
+    const active = document.activeElement, tap = k => { this.padKey("keydown", k); this.padKey("keyup", k); };
+    const confirm = scope => {
+      const t = this.targets(scope);
+      if (active && scope.contains(active) && t.includes(active)) { cl.add("kbd"); active.click(); return true; }
+      if (scope.id === "intro") { const e = document.getElementById("enter"); if (e && !e.disabled) { e.click(); return true; } }
+      this.focusFirst(scope); return true;
+    };
+    switch (b) {
+      case 0:   // A
+        if (root) return confirm(root);
+        if (this.dockNav) return confirm(document.getElementById("dock"));
+        if (inGame) { const bar = document.getElementById("focusbar"); if (bar && active && bar.contains(active)) { cl.add("kbd"); active.click(); } return; }   // the game reads A itself
+        if (body.classList.contains("is-loading")) return;
+        { const pr = document.getElementById("prompt"); tap(pr && !pr.hidden ? "e" : " "); }
+        return;
+      case 1:   // B
+        if (this.dockNav) { this.dockNav = false; if (active && active.blur) active.blur(); return; }
+        if (inGame) { const bar = document.getElementById("focusbar"); if (bar && active && bar.contains(active) && !root) { active.blur(); return; } }
+        tap("Escape"); return;
+      case 2: case 3:   // X, Y: jump
+        if (!root && !inGame) tap(" "); return;
+      case 4: case 5: {   // LB, RB: the dock (or the game's focus bar)
+        if (root) return;
+        if (inGame) {
+          const bar = document.getElementById("focusbar"), t = bar ? this.targets(bar) : [];
+          if (bar && active && bar.contains(active)) { active.blur(); return; }
+          if (t.length) this.focusEl(t[0]);
+          return;
+        }
+        if (body.classList.contains("is-loading")) return;
+        const dock = document.getElementById("dock");
+        if (this.dockNav) { this.dockNav = false; if (active && active.blur) active.blur(); return; }
+        const t = this.targets(dock); if (!t.length) return;
+        this.dockNav = true; this.focusEl(t.find(el => el.classList.contains("here")) || t[0]); return;
+      }
+      case 8: if (!root && !inGame) tap("m"); return;   // Back: the map
+      case 9: {   // Start: the menu
+        if (body.classList.contains("is-loading") || document.getElementById("intro") && !document.getElementById("intro").classList.contains("gone")) return;
+        this.dockNav = false;
+        const menu = document.getElementById("menu"), mb = document.getElementById("menuBtn");
+        if (menu && menu.hidden && mb) mb.click(); else tap("Escape");
+        return;
+      }
+    }
   }
 
   padKey(type, key) {

@@ -2,6 +2,7 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 import { outline, inkFollow } from "./toon.js";
+import { createNightStars, BAND } from "./nightsky.js";
 
 /* two soft cel bands for the clouds: shade and sunlit */
 function cloudRamp() {
@@ -114,6 +115,7 @@ export function createSky(renderer, scene, { shadow = 2048 } = {}) {
 
   const U = {
     uUp: { value: new THREE.Vector3(0, 1, 0) }, uSun: { value: new THREE.Vector3(1, 0.3, 0).normalize() }, uTime: { value: 0 }, uNight: { value: 0 },
+    uEast: { value: new THREE.Vector3(1, 0, 0) }, uNorth: { value: new THREE.Vector3(0, 0, 1) }, uBandN: { value: BAND.n }, uBandA: { value: BAND.a }, uBandB: { value: BAND.b },
     zenith: { value: new THREE.Color("#3F6BAE") }, high: { value: new THREE.Color("#86A9D6") }, mid: { value: new THREE.Color("#DCD2C6") },
     low: { value: new THREE.Color("#F6CD98") }, sunCol: { value: new THREE.Color("#FFF1CC") }, glow: { value: new THREE.Color("#FFB674") },
     cloudLit: { value: new THREE.Color("#FFF1DF") }, cloudShade: { value: new THREE.Color("#A9B6D0") }, below: { value: new THREE.Color("#D8C2AC") },
@@ -121,11 +123,20 @@ export function createSky(renderer, scene, { shadow = 2048 } = {}) {
   const sky = new THREE.Mesh(new THREE.SphereGeometry(1400, 48, 24), new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false, fog: false, uniforms: U,
     vertexShader: "varying vec3 vD; void main(){ vD = normalize(position); gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); gl_Position.z = gl_Position.w; }",
-    fragmentShader: `uniform vec3 uUp, uSun, zenith, high, mid, low, sunCol, glow, cloudLit, cloudShade, below; uniform float uTime, uNight; varying vec3 vD;
+    fragmentShader: `uniform vec3 uEast, uNorth, uBandN, uBandA, uBandB; uniform vec3 uUp, uSun, zenith, high, mid, low, sunCol, glow, cloudLit, cloudShade, below; uniform float uTime, uNight; varying vec3 vD;
       float h2(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5); }
+      float h3(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
       float n2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
         return mix(mix(h2(i), h2(i+vec2(1,0)), f.x), mix(h2(i+vec2(0,1)), h2(i+vec2(1,1)), f.x), f.y); }
       float fbm(vec2 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ s += a * n2(p); p = p * 2.02 + 3.1; a *= 0.5; } return s; }
+      float n3(vec3 p){ vec3 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+        return mix(mix(mix(h3(i), h3(i+vec3(1,0,0)), f.x), mix(h3(i+vec3(0,1,0)), h3(i+vec3(1,1,0)), f.x), f.y),
+                   mix(mix(h3(i+vec3(0,0,1)), h3(i+vec3(1,0,1)), f.x), mix(h3(i+vec3(0,1,1)), h3(i+vec3(1,1,1)), f.x), f.y), f.z); }
+      float fbm3(vec3 p){ float s = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ s += a * n3(p); p = p * 2.03 + 1.7; a *= 0.5; } return s; }
+      // fine stars on a 3D cell grid: soft gaussian dots (no hard edges, no shimmer), density 'dens' in 0..1
+      float fineStars(vec3 l, float S, float dens, float rad){ vec3 sp = l * S, id = floor(sp); float r1 = h3(id), r2 = h3(id + 7.7);
+        vec3 cen = id + 0.25 + 0.5 * vec3(h3(id + 1.3), h3(id + 2.9), h3(id + 4.1)); vec3 q = sp - cen;
+        return step(1.0 - dens, r1) * exp(-dot(q, q) / (rad * rad)) * (0.35 + 0.65 * r2 * r2); }
       void main(){
         vec3 d = normalize(vD);
         float h = dot(d, uUp);                        // elevation above the visitor's horizon
@@ -145,7 +156,38 @@ export function createSky(renderer, scene, { shadow = 2048 } = {}) {
         vec3 cc = mix(cloudShade, cloudLit, clamp(0.35 + s * 0.9, 0.0, 1.0));
         c = mix(c, cc, cloud * 0.85);
         // night (sun under the horizon, sky.shadowK -> 0): the whole dome sinks to a deep blue
-        c = mix(c, mix(vec3(0.075, 0.10, 0.21), vec3(0.02, 0.035, 0.1), smoothstep(0.0, 0.8, h)), uNight);
+        c = mix(c, mix(vec3(0.04, 0.055, 0.15), vec3(0.01, 0.018, 0.075), smoothstep(0.0, 0.8, h)), uNight);
+        // night Milky Way (R7 upgrade). Everything below is inside uNight > 0, so by day the branch never runs and the day sky is untouched.
+        if (uNight > 0.001) {
+          float nk = smoothstep(0.3, 1.0, uNight);
+          vec3 l = vec3(dot(d, uEast), dot(d, uUp), dot(d, uNorth));
+          // a faint indigo/violet drift across the whole dome, so the navy is never flat
+          float drift = fbm3(l * 1.6 + 4.0);
+          c += mix(vec3(0.0, 0.01, 0.045), vec3(0.05, 0.02, 0.09), drift) * nk * (0.6 + 0.4 * smoothstep(-0.2, 0.5, l.y));
+          // the band: a great circle, wide and soft, brightest and widest at the core
+          float b = dot(l, uBandN), along = atan(dot(l, uBandA), dot(l, uBandB));
+          float cw = 0.5 + 0.5 * cos(along), core = cw * cw;
+          float w = mix(0.20, 0.34, cw);
+          float broad = exp(-(b * b) / (w * w)), narrow = exp(-(b * b) / (w * w * 0.12));
+          float warp = fbm3(l * 3.0 + 9.0);
+          float cloud = fbm3(l * 5.5 + warp * 1.4);                 // nebulous structure
+          float struc = 0.3 + 0.9 * smoothstep(0.3, 0.75, cloud);
+          float lane = fbm3(l * vec3(9.0, 11.0, 9.0) + warp * 2.0 + 3.0);
+          float dust = smoothstep(0.48, 0.70, lane) * exp(-(b * b) / (w * w * 0.5));
+          float rift = exp(-pow((b - 0.04 * sin(along * 3.0 + warp * 4.0)) / 0.028, 2.0)) * (0.35 + 0.65 * cw);
+          float glow = (broad * 0.5 + narrow * 0.85) * struc * (1.0 - 0.8 * dust) * (1.0 - 0.7 * rift);
+          float edge = smoothstep(0.1, 0.9, abs(b) / w);                  // far from the spine: cool
+          vec3 cool = vec3(0.16, 0.26, 0.78), violet = vec3(0.50, 0.34, 0.92), warm = vec3(1.0, 0.64, 0.34);
+          vec3 bc = mix(violet, cool, edge);
+          bc = mix(bc, warm, smoothstep(0.35, 0.95, core) * (1.0 - 0.7 * edge));
+          float lum = 0.62 * (0.4 + 0.8 * core);
+          c += bc * glow * lum * nk;
+          // fine stars: a field that thickens toward the band and thins in the dust lanes
+          float bd = clamp(broad * 0.8 + narrow * 0.5, 0.0, 1.0) * (1.0 - 0.75 * dust);
+          float sf = fineStars(l, 150.0, 0.045 + 0.40 * bd, 0.13) * 0.55 + fineStars(l + 3.1, 70.0, 0.02 + 0.10 * bd, 0.11) * 0.9;
+          float tint = h3(floor(l * 150.0) + 5.5);
+          c += mix(vec3(0.75, 0.85, 1.0), vec3(1.0, 0.9, 0.75), tint) * sf * nk * (1.0 - 0.5 * dust);
+        }
         // the sun disc, soft-edged
         c = mix(c, sunCol, smoothstep(0.9975, 0.9988, s));
         gl_FragColor = vec4(c, 1.0);
@@ -153,6 +195,7 @@ export function createSky(renderer, scene, { shadow = 2048 } = {}) {
       }`,
   }));
   sky.frustumCulled = false; sky.renderOrder = -1; scene.add(sky);
+  const night = createNightStars(U); scene.add(night.points);   // R7: brighter stars with small halos, drawn only at night
 
   /* 3D clouds: satellites of the planet. Three orbital planes through the planet's centre (so every
      cloud rides a great circle), at three sky heights, all turning the SAME way, so from any spot on
@@ -289,7 +332,7 @@ export function createSky(renderer, scene, { shadow = 2048 } = {}) {
     sun.intensity = SUN_I * shadowK;
     sun.shadow.intensity = SHADOW_I * shadowK;
     hemi.intensity = HEMI_I + 0.45 * (1 - shadowK);
-    U.uNight.value = 1 - shadowK;
+    U.uNight.value = 1 - shadowK; night.setK(U.uNight.value);
     scene.background.lerpColors(BG_DAY, BG_NIGHT, 1 - shadowK); scene.fog.color.lerpColors(FOG_DAY, FOG_NIGHT, 1 - shadowK);
     fill.intensity = FILL_I;
   };
@@ -300,7 +343,7 @@ export function createSky(renderer, scene, { shadow = 2048 } = {}) {
   let first = true;
   // point the sky shader, shadow light (texel-snapped box), its target and the fill at `d`
   const aim = focus => {
-    U.uUp.value.copy(skyUp);
+    U.uUp.value.copy(skyUp); night.align(skyUp);
     X.crossVectors(Math.abs(REF.dot(d)) > 0.95 ? new THREE.Vector3(1, 0, 0) : REF, d).normalize();
     Y.crossVectors(d, X);
     sc.up.copy(Y);

@@ -7,7 +7,8 @@ const TAU = Math.PI * 2;
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 export const TOL = 0.1;        // radians: "close enough" to the target angle
 export const RANGE = 2.4;      // radians: beyond this the strokes are fully scrambled
-const HOLD = 0.4;       // seconds inside TOL before the picture snaps
+const TURN_RATE = 1.5;  // radians per second at full key or stick turn
+const HOLD = 0.4;      // seconds inside TOL before the picture snaps
 /* GB1: warmer / colder. The dial has 36 detents (the 36 printed ticks). Each detent it crosses makes one recorded foley knock whose
    pitch, brightness and level rise with closeness = focusAmount(error) (sfx.tick / tickParams); the ring of ticks lights up
    in signal blue by the same closeness; inside tolerance the ring is full and, once the picture snaps, a distinct lock cue plays ONCE. */
@@ -323,9 +324,55 @@ export default class Engraver {
   enter() {
     this.focused = true; this.dirty = true; this.wrote = false;
     this.pushUi();
+    this.bindKeys();
     return { pos: new THREE.Vector3(0, 6.2, 10.2), look: new THREE.Vector3(0, 3.0, -3.0) };   // high enough that the dial clears the focus bar
   }
-  exit() { this.focused = false; this.dragging = false; }
+  exit() { this.focused = false; this.dragging = false; this.unbindKeys(); }
+
+  /* R7 B4: keyboard and gamepad. The pad's D-pad arrives as ArrowLeft / ArrowRight / ArrowUp / ArrowDown key events (input.js),
+     A as Enter / E, B as Escape (main.js leaves the game). The left stick is read straight from the pad (it sends no key).
+     Before the solve: Left / Right (or A / D, or the stick) turn the dial. After it: Left / Right or A pick the picture, Up / Down the density. */
+  bindKeys() {
+    if (this._kd || typeof addEventListener !== "function") return;   // node tests have no window
+    this.turnKeys = { l: false, r: false };
+    this._kd = e => this.onKey(e, true); this._ku = e => this.onKey(e, false); this._kb = () => { this.turnKeys.l = this.turnKeys.r = false; };
+    addEventListener("keydown", this._kd); addEventListener("keyup", this._ku); addEventListener("blur", this._kb);
+  }
+  unbindKeys() {
+    if (!this._kd) return;
+    removeEventListener("keydown", this._kd); removeEventListener("keyup", this._ku); removeEventListener("blur", this._kb);
+    this._kd = this._ku = this._kb = null;
+  }
+  onKey(e, down) {
+    if (!this.focused || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target && e.target.closest && e.target.closest("input, textarea")) return;
+    const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    const left = k === "ArrowLeft" || k === "a", right = k === "ArrowRight" || k === "d";
+    if (left) this.turnKeys.l = down; if (right) this.turnKeys.r = down;
+    if (!down || e.repeat) return;
+    const onButton = document.activeElement && document.activeElement.closest && document.activeElement.closest("button, a");   // a focused tool button handles its own Enter / A
+    const keys = Object.keys(SOURCES);
+    const step = d => this.setSource(keys[(keys.indexOf(this.source) + d + keys.length) % keys.length]);
+    if (this.free) {
+      if (left) step(-1); else if (right) step(1);
+      else if (k === "ArrowUp") this.setDensity("fine"); else if (k === "ArrowDown") this.setDensity("bold");
+      else if ((k === "e" || k === "Enter") && !onButton) step(1);
+      else return;
+      this.pushUi();
+    } else if ((k === "e" || k === "Enter") && !onButton) this.pulse = 1;
+  }
+  /* the dial's turn this frame, -1..1: held keys, plus the left stick of any standard pad (dead zone 0.15, eased so small tilts are fine) */
+  turnInput() {
+    let t = (this.turnKeys && this.turnKeys.r ? 1 : 0) - (this.turnKeys && this.turnKeys.l ? 1 : 0);
+    try {
+      for (const p of Array.from((navigator.getGamepads && navigator.getGamepads()) || [])) {
+        if (!p || !p.connected || p.mapping !== "standard") continue;
+        const ax = (p.axes && p.axes[0]) || 0, m = Math.abs(ax);
+        if (m > 0.15) t += Math.sign(ax) * Math.pow((m - 0.15) / 0.85, 2);
+      }
+    } catch (err) { /* no pads */ }
+    return Math.max(-1, Math.min(1, t));
+  }
 
   pushUi() {
     if (!this.free) {
@@ -370,6 +417,7 @@ export default class Engraver {
   update(dt, t, focused) {
     dt = Math.min(dt, 0.05); this.t = t;
     if (!focused && !this.dirty) return;
+    if (focused && !this.free) { const tn = this.turnInput(); if (tn) { this.dialIn += tn * TURN_RATE * dt; this.dirty = true; } }   // R7 B4: keys and the pad stick
     // the dial follows the input smoothly
     this.dialVis += (this.dialIn - this.dialVis) * (1 - Math.exp(-16 * dt));
     this.knob.rotation.y = this.dialVis;
@@ -430,7 +478,7 @@ export default class Engraver {
   }
 
   dispose() {
-    this.disposed = true;
+    this.disposed = true; this.unbindKeys();
     this.ctx.ui.tools([]); this.ctx.ui.status(null);
     this.ctx.group.remove(this.root);
     this.strokes.dispose(); this.ticks.dispose(); this.studs.dispose();

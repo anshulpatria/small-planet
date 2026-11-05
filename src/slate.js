@@ -87,7 +87,35 @@ export class Slate {
     el.style.cssText = "position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0";
     document.body.appendChild(el); this.live = el;
     this.fontsOk = false;
+    // R7 skip: E / Enter / pad A (a real KeyboardEvent from input.js) / click / tap while a creature line types completes it and stops the
+    // babble; a second press closes it. Captured on window so the press is not also an interact or a walk-there.
+    const eat = e => { if (this.skip()) { e.stopImmediatePropagation(); e.preventDefault(); } };
+    const on = typeof addEventListener === "function" ? addEventListener : () => {};   // the node smoke test has no window
+    on("keydown", e => { if ((e.key === "e" || e.key === "E" || e.key === "Enter") && !e.repeat) eat(e); }, true);
+    on("pointerdown", e => { if (!(e.target && e.target.closest && e.target.closest("#dock,#menu,button"))) eat(e); }, true);
     this.fonts = Promise.all([fontsReady, document.fonts.load(BODY_FONT(32, false)), document.fonts.load(BODY_FONT(32, true)), document.fonts.load(NAME_FONT(32))].map(p => Promise.resolve(p).catch(() => {}))).then(() => { this.fontsOk = true; });
+  }
+  /* R7: the next say() whose plain text equals `text` types out (blank until startReveal) */
+  armTyping(text) { this.armed = String(text == null ? "" : text).replace(/<\/?[a-z][^>]*>/gi, "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&#39;/g, "'"); }
+  /* R7: plan.reveal = [{t, n}] on the clock now() (seconds), t0 = when the babble's chunk time 0 sounds. Every entry shows n chars the
+     moment its chunk sounds (same schedule as the audio, no second clock). stop(tail) silences the babble (skip). */
+  startReveal(plan, t0, now, stop) {
+    const c = this.cur; if (!c || !c.typed || c.rev || plan.len !== c.body.length) return false;
+    c.rev = { sched: plan.reveal, t0, now, stop, i: 0, log: [] };
+    c.until = Math.max(c.until, plan.dur + 0.1 + 1.8);   // hold: the typing, then a reading beat, then it closes as before
+    return true;
+  }
+  /* skip: while typing, show the whole line now and stop the babble with a short tail; true if it consumed the press */
+  skip() {
+    const c = this.cur; if (!c || this.phase === "idle" || this.phase === "out") return false;
+    if (c.typed && c.shown < c.body.length) {
+      c.shown = c.body.length; c.draw(c.shown); c.tex.needsUpdate = true; c.skipped = true;
+      if (c.rev && c.rev.stop) c.rev.stop(0.12);
+      c.rev = null; this.live.textContent = c.text; c.until = Math.max(c.until, this.t + 1.8);
+      return true;
+    }
+    if (c.skipped) { c.skipped = false; this.hide(); return true; }
+    return false;
   }
   get active() { return this.phase !== "idle"; }
   get text() { return this.cur ? this.cur.text : ""; }
@@ -109,13 +137,25 @@ export class Slate {
     // canvas: transparent, text only (the cream is the cuboid itself)
     const cv = document.createElement("canvas"); cv.width = Math.ceil(w * ppm); cv.height = Math.ceil(h * ppm);
     const g = cv.getContext("2d"); g.textBaseline = "alphabetic"; g.fillStyle = INK_TEXT;
-    let y = S.PAD_Y * ppm;
-    if (opts.name) { g.font = NAME_FONT(nFont); y += nFont * 0.98; g.fillText(opts.name, S.PAD_X * ppm, y); y += (S.NAME_GAP * ppm) + nFont * (S.LINE_K - 0.98); }
-    for (const ln of lines) {
-      y += mFont * 1.0; let x = S.PAD_X * ppm;
-      for (const s of ln) { g.font = BODY_FONT(mFont, s.b); g.fillText(s.t, x, y); x += s.w * ppm; }
-      y += mFont * (S.LINE_K - 1.0);
-    }
+    // R7 reveal: the canvas can be redrawn showing only the first n chars of the body (the layout is always the full line's)
+    const body = plainText(runs); let pos = 0;
+    for (const ln of lines) for (const sg of ln) { const ix = body.indexOf(sg.t, pos); sg.start = ix < 0 ? pos : ix; pos = sg.start + sg.t.length; }
+    const draw = (n) => {
+      if (g.clearRect) g.clearRect(0, 0, cv.width, cv.height); g.fillStyle = INK_TEXT;
+      let y = S.PAD_Y * ppm;
+      if (opts.name) { g.font = NAME_FONT(nFont); y += nFont * 0.98; g.fillText(opts.name, S.PAD_X * ppm, y); y += (S.NAME_GAP * ppm) + nFont * (S.LINE_K - 0.98); }
+      for (const ln of lines) {
+        y += mFont * 1.0; let x = S.PAD_X * ppm;
+        for (const s of ln) {
+          const part = n >= s.start + s.t.length ? s.t : n > s.start ? s.t.slice(0, n - s.start) : "";
+          if (part) { g.font = BODY_FONT(mFont, s.b); g.fillText(part, x, y); }
+          x += s.w * ppm;
+        }
+        y += mFont * (S.LINE_K - 1.0);
+      }
+    };
+    const typed = !!this.armed && this.armed === body; this.armed = null;
+    draw(typed ? 0 : Infinity);
     const tex = new THREE.CanvasTexture(cv); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8; tex.generateMipmaps = true; tex.minFilter = THREE.LinearMipmapLinearFilter; tex.needsUpdate = true;
     // box faces: +x, -x, +y, -y, +z (front), -z (back); depth-tested like the rest of the world and casting a real shadow
     const flat = c => new THREE.MeshBasicMaterial({ color: c, toneMapped: false, fog: false });
@@ -130,7 +170,7 @@ export class Slate {
     this.hulls = outline(this.body, "#1E1F26", o => o === box, { fade: false });   // hull is added beside the box, identity transform
     let top = opts.top;
     if (top && top.isObject3D) top = SlateTop(top, opts.base(), opts.up());
-    this.cur = { ...opts, text, w, h, top: top ?? 2.2, box, face, tex, until: (opts.ms ?? 2600) / 1000, held: 0 };
+    this.cur = { ...opts, text, body, draw, typed, shown: typed ? 0 : body.length, typedAt: this.cur0 = performance.now(), rev: null, skipped: false, w, h, top: top ?? 2.2, box, face, tex, until: (opts.ms ?? 2600) / 1000, held: 0 };
     this.live.textContent = text;
     this.phase = "in"; this.t = 0; this.group.visible = true; this.body.scale.setScalar(0.001);
     this.k = this.k || 1;
@@ -157,7 +197,16 @@ export class Slate {
   update(dt, playerPos) {
     const c = this.cur; if (!c || this.phase === "idle") return;
     const S = SLATE, cam = this.camera;
+    if (c.typed && c.shown < c.body.length) {
+      const R = c.rev;
+      if (R) {
+        const tt = R.now() - R.t0; let n = c.shown;
+        while (R.i < R.sched.length && R.sched[R.i].t <= tt) { n = Math.max(n, R.sched[R.i].n); R.log.push({ n: R.sched[R.i].n, planned: +R.sched[R.i].t.toFixed(3), shown: +tt.toFixed(3) }); R.i++; }
+        if (n !== c.shown) { c.shown = Math.min(n, c.body.length); c.draw(c.shown); c.tex.needsUpdate = true; }
+      } else if (performance.now() - c.typedAt > 3500) { c.shown = c.body.length; c.draw(c.shown); c.tex.needsUpdate = true; }   // no voice came: never leave a slate blank
+    }
     this.t += dt;
+    if (this.phase === "hold" && c.typed && c.shown < c.body.length && this.t >= c.until) c.until = this.t + 0.5;   // never close mid-typing
     if (this.phase === "in") { const x = Math.min(1, this.t / S.POP_IN); this.pop = easeOutBack(x); if (x >= 1) { this.phase = "hold"; this.t = 0; this.pop = 1; } }
     else if (this.phase === "hold") {
       this.pop = 1;

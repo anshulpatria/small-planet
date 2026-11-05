@@ -179,6 +179,10 @@ body.touch.is-loading .stick, body.touch.focus .stick, body.touch.is-loading .ac
 .act-btn{opacity:.5;box-shadow:inset 0 -7px 0 var(--cream-lo),2px 3px 0 var(--cel-ink);transition:opacity .2s var(--ease)}
 .act-btn.on{opacity:1;box-shadow:inset 0 -7px 0 var(--cream-lo),3px 5px 0 var(--cel-ink)}
 .act-btn.on svg{stroke:var(--cel-blue,#2B2BEE)}
+/* R7 B2 jump: the interact button's twin (same cream face, ink outline, band and drop), a little smaller, in the same bottom row to its left.
+   Always available, so its icon stays ink (the blue is the interact prompt's own colour). */
+.jump-btn{right:calc(max(16px, env(safe-area-inset-right, 0px)) + var(--ctl-size) + 14px);width:calc(var(--ctl-size) * .82);height:calc(var(--ctl-size) * .82)}
+.act-btn.jump-btn.on svg{stroke:var(--cel-ink)}
 /* ====================================================================================================== */
 
 .fade{position:fixed;inset:0;z-index:35;background:var(--paper);opacity:0;pointer-events:none;transition:opacity .45s var(--ease)}

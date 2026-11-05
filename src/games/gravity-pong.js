@@ -1,6 +1,7 @@
 /* Gravity Pong - "Curve a shot into the blue ring".
    Pure logic (stepBall, simulateShot, solveShot, randomWells) is exported for Node tests. */
 import * as THREE from "three";
+import { PadInput, padConnected } from "./padcursor.js";
 
 /* ------------------------------------------------------------------ logic */
 export const COURT = { minX: -3.3, maxX: 3.3, minZ: -7.4, maxZ: 1.5, y: 0.5 };
@@ -442,6 +443,7 @@ export default class GravityPong {
     this.life = 0; this.modeT = 0; this.acc = 0; this.slow = 0;
     this.ballScale = 1;
     this.pullX = 0; this.pullZ = 0; this.aiming = false;
+    this.pad = new PadInput(); this.padAim = false; this.padTools = [];   // R7 T4: gamepad
     this.goals = 0; this.misses = 0; this.free = false; this.focused = false;
     this.prevPts = new Float32Array(this.DOTS * 2); this.prevN = 0;
     this.assist = null; this.launchOff = { x: 0, z: 0 };
@@ -540,10 +542,10 @@ export default class GravityPong {
     }
     this.pushStatus();
     if (this.coach.el) { this.coach.scored = false; this.showCoach(false); }
-    else this.ctx.ui.toast("Pull back from the ball, release, and aim for the blue ring. Gravity will interfere.");
+    else this.ctx.ui.toast(padConnected() ? "Hold A, pull the stick back, let go, and aim for the blue ring. Gravity will interfere." : "Pull back from the ball, release, and aim for the blue ring. Gravity will interfere.");
     return { pos, look: new THREE.Vector3(0, 0.4, -3.0) };
   }
-  exit() { this.focused = false; this.aiming = false; this.hideCoach(); if (this.round) this.stopChallenge(); this.updatePreview(); }
+  exit() { this.focused = false; this.aiming = false; this.padAim = false; this.hideCoach(); if (this.round) this.stopChallenge(); this.updatePreview(); }
 
   /* ------------------------------------------------------------- coach */
   /* DOM overlay: the ghost hand, its drag line and a one-line instruction. Only in a real page. */
@@ -684,10 +686,31 @@ export default class GravityPong {
   }
   pushTools() {
     const r = this.round;
-    if (!this.free) this.ctx.ui.tools([]);
-    else if (!r) this.ctx.ui.tools([{ label: "Move the wells", onClick: () => this.moveWells() }, { label: "Play 30s challenge", onClick: () => this.startChallenge() }]);
-    else if (r.phase === "run") this.ctx.ui.tools([{ label: "Free play", onClick: () => this.stopChallenge() }]);
-    else this.ctx.ui.tools([{ label: "Play again", onClick: () => this.startChallenge() }, { label: "Free play", onClick: () => this.stopChallenge() }]);
+    let list;
+    if (!this.free) list = [];
+    else if (!r) list = [{ label: "Move the wells", onClick: () => this.moveWells() }, { label: "Play 30s challenge", onClick: () => this.startChallenge() }];
+    else if (r.phase === "run") list = [{ label: "Free play", onClick: () => this.stopChallenge() }];
+    else list = [{ label: "Play again", onClick: () => this.startChallenge() }, { label: "Free play", onClick: () => this.stopChallenge() }];
+    this.padTools = list;   // gamepad: LB = first chip, RB = second chip (or the only one)
+    this.ctx.ui.tools(list);
+  }
+
+  /* R7 T4 gamepad: hold A on the ball, pull the stick back (down = toward you, sideways = angle), let go of A to shoot. */
+  padStep() {
+    const P = this.pad; P.poll();
+    if (!P.on) { if (this.padAim) { this.padAim = false; this.aiming = false; this.coach.held = false; this.pullX = this.pullZ = 0; this.updatePreview(); } return; }
+    const ready = this.mode === "ready" && !(this.round && this.round.phase === "over");
+    if (P.edge[0] && ready && !this.aiming) {
+      this.coach.idle = 0; this.coach.held = true; this.coach.pull = null; this.ghost.visible = false;
+      this.aiming = true; this.padAim = true; this.pullX = 0; this.pullZ = 0; this.updatePreview();
+    }
+    if (this.padAim) {
+      if (!P.held[0] || this.mode !== "ready") { this.padAim = false; if (this.aiming) this.release(); return; }
+      this.coach.idle = 0;
+      const k = PULL.max, tx = P.x * k, tz = Math.max(0, P.y) * k, f = 1 - Math.exp(-14 * 1 / 60);
+      this.pullX += (tx - this.pullX) * f; this.pullZ += (tz - this.pullZ) * f;
+      this.updatePreview();
+    }
   }
 
   moveWells() {
@@ -759,6 +782,7 @@ export default class GravityPong {
   }
 
   pointer(e) {
+    if (this.padAim) return;   // the pad owns the plunger until A is let go
     if (e.type === "up") { if (this.aiming) this.release(); return; }
     const p = this.planePoint(e);
     if (e.type === "down") {
@@ -856,6 +880,7 @@ export default class GravityPong {
   /* ------------------------------------------------------------- update */
   update(dt, t, focused) {
     dt = Math.min(dt, 0.05);
+    if (focused) this.padStep();
     // wells ease toward targets
     const ease = 1 - Math.exp(-(this.round ? 12 : 6) * dt);
     let moved = false;

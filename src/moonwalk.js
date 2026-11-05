@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { markMoonVisited } from "./copy-r7.js";
 
 /* ASCII moonwalk, "Spell GITHUB" (the GitHub Portfolio's game, id artboard-42). An inked cream pad stands beside the kiosk's
    visitor spot: "Step into the terminal". Stepping on it (or pressing E there) holds the ASCII pass on (AsciiPass.hold: sustained
@@ -10,6 +11,7 @@ import * as THREE from "three";
    moon gravity is floaty), cel and inked, capped at STAMP_CAP, and fade away after the act. Unlit flat two-tone (cream + navy ink).
    Placement is relative to the kiosk frame: visitor spot S, kiosk base B, forward = S - B along the ground. */
 const RAMP = " .:-=+*#%@", INK = "#1E1F26", CREAM = "#FFF1CE";
+const PAD_OUT = 2.6;   // m from the kiosk's visitor spot, outward along the kiosk's facing
 const WORD = "GITHUB", LETTER_H = 1.5, ARC_R = 3.0, ARC_STEP = 0.7, ARC_C = 0, HIT_R = 0.95, STAMP_CAP = 90, STEP = 0.6, PAD_R = 0.85, AREA_R = 9.5, LIFT = 0.05, FADE = 1.6, BURSTS = 30;
 const PROJECT = "artboard-42";
 
@@ -67,7 +69,7 @@ function install({ mr, moon, anchors, spots, ui, ascii, solve, log }) {
   const at = (s, a, b) => { const q = S.clone().addScaledVector(side, s * a).addScaledVector(fwd, b), u = upAt(q); return ground(u); };
   const room = s => { let m = 99; for (const [a, b] of [[2.4, 0.3], [5.0, 0.2], [5.6, 1.6], [5.6, -1.4]]) { const q = at(s, a, b); for (const h of hazards) m = Math.min(m, q.distanceTo(h.p) - h.r); } return m; };
   const sd = room(1) >= room(-1) ? 1 : -1;
-  const padP = at(sd, 2.5, 0.2);
+  const padP = at(1, 0, PAD_OUT);   // R7 (user): on the screen's centre line, straight out in front of the kiosk (was 2.5 m to one side)
   const state = { act: null, found: false, pad: padP, centre: padP, side: sd, hazardRoom: room(sd) };
 
   const root = new THREE.Group(); root.name = "MOONWALK"; scene.add(root);
@@ -89,7 +91,7 @@ function install({ mr, moon, anchors, spots, ui, ascii, solve, log }) {
   const stamps = [];
   for (let i = 0; i < STAMP_CAP; i++) stamps.push({ mesh: mk("."), born: -1, size: 0.5 });
   // the letters: an open arc round the pad on the side away from the kiosk; each a sprite that always faces the camera
-  const letters = [], n = WORD.length, out = side.clone().multiplyScalar(sd);
+  const letters = [], n = WORD.length, out = fwd.clone();   // R7: the arc opens straight away from the kiosk, centred on the same line
   const pu = upAt(padP);
   const place = (l, i, centre, R) => { const a = centre - (i - (n - 1) / 2) * ARC_STEP, d = out.clone().applyAxisAngle(pu, a), q = padP.clone().addScaledVector(d, R), u = upAt(q); l.base = ground(u); l.up = u.clone(); };
   for (let i = 0; i < n; i++) {
@@ -97,41 +99,83 @@ function install({ mr, moon, anchors, spots, ui, ascii, solve, log }) {
     const spr = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: letterTexture(WORD[i]), transparent: true, alphaTest: 0.3, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, fog: false }));
     spr.scale.set(LETTER_H * 5 / 7, LETTER_H, 1); spr.renderOrder = 4; spr.layers.set(1); spr.visible = false; root.add(spr);
     spr.onBeforeRender = (rr, sc, cam) => {   // face the lens that is drawing it (yaw about the moon's up only); runs before the model-view matrix is built
+      if (L.show) {   // R7: the payoff row, drawn in front of the lens, big and level
+        const d = 7, w = 2 * d * Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2) * cam.aspect, sp = Math.min(w * 0.82 / WORD.length, 2.3), h = Math.min(sp * 7 / 5 * 0.9, 3.2), k = 1 + 0.06 * Math.sin((performance.now() / 1000 - L.show) * 6 + L.phase);
+        _x.set(1, 0, 0).applyQuaternion(cam.quaternion); _z.set(0, 1, 0).applyQuaternion(cam.quaternion);
+        spr.position.copy(cam.position).addScaledVector(_f.set(0, 0, -1).applyQuaternion(cam.quaternion), d).addScaledVector(_x, (L.idx - (WORD.length - 1) / 2) * sp).addScaledVector(_z, 0.4);
+        spr.scale.set(h * 5 / 7 * k, h * k, 1);
+      }
       spr.quaternion.copy(cam.quaternion); spr.matrixWorld.compose(spr.position, spr.quaternion, spr.scale);   // a screen-aligned billboard: upright and readable from any camera pitch
     };
-    const L = { ch: WORD[i], sprite: spr, base: g.clone(), up: u.clone(), got: false, popAt: 0, phase: i * 1.3 }; spr.userData.l = L; letters.push(L);
+    const L = { idx: i, show: 0, ch: WORD[i], sprite: spr, base: g.clone(), up: u.clone(), got: false, popAt: 0, phase: i * 1.3 }; spr.userData.l = L; letters.push(L);
   }
   letters.forEach((l, i) => place(l, i, ARC_C, ARC_R)); state.relayout = (c, R) => letters.forEach((l, i) => place(l, i, c, R));
   const bursts = [];   // small @ particles for the pop
   for (let i = 0; i < BURSTS; i++) { const m = new THREE.Sprite(new THREE.SpriteMaterial({ map: mats["@"].map, transparent: true, alphaTest: 0.3, depthWrite: false, toneMapped: false })); m.visible = false; m.renderOrder = 5; root.add(m); bursts.push({ m, t0: -9, v: new THREE.Vector3() }); }
 
+  /* R7 C2: Blip's marker. The ASCII pass turns the whole world into characters, Blip included, so while the act runs a flat ring
+     (ink edge, cream band) lies at his feet on the crisp overlay layer, drawn over the ASCII like the letters. */
+  const mark = new THREE.Group(); mark.name = "MOONWALK_blip_ring"; mark.visible = false; root.add(mark);
+  const mkRing = (r0, r1, color, order) => { const m = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 56), new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, depthWrite: false, toneMapped: false, fog: false })); m.renderOrder = order; m.layers.set(1); mark.add(m); return m; };
+  mkRing(0.5, 1.02, INK, 6); mkRing(0.6, 0.92, CREAM, 7);
+  const pulseHaptic = () => { try { const g = (navigator.getGamepads && [...navigator.getGamepads()].find(x => x && x.connected)); g && g.vibrationActuator && g.vibrationActuator.playEffect("dual-rumble", { duration: 90, strongMagnitude: 0.4, weakMagnitude: 0.6 }); } catch { /* optional */ } };
+  /* the hint rides under the toast along the top while the act runs, so it never sits over the letter row or Blip's ring (r7-gh, injected here) */
+  if (!document.getElementById("r7-gh-style")) { const st = document.createElement("style"); st.id = "r7-gh-style"; st.textContent = "#hint.r7-gh{bottom:auto !important;top:calc(var(--hud-t, var(--gut, 16px)) + 124px) !important;max-width:calc(100vw - 32px)}"; document.head.appendChild(st); }
+  const hintTop = on => { const h = document.getElementById("hint"); h && h.classList.toggle("r7-gh", on); };
+  const HINT = "Walk into each letter. No typing.";
   const A = { stampN: 0, count: 0, flash: 0, fade: 0, last: null, foot: 1, done: false, hold: false, armed: true, bn: 0 };
-  M = Object.assign(state, { spots, ascii, _mats: mats, toast: (msg, ms = 1800) => ui.toast(msg, ms), root, pad, letters, bursts, stamps, A, getStamps: () => stamps.filter(s => s.mesh.visible && s.born >= 0).map(s => s.mesh.position.clone()) });
-  const word = () => "GITHUB · " + letters.map(l => (l.got ? l.ch : "_")).join("&nbsp;");
+  M = Object.assign(state, { mark, spots, ascii, _mats: mats, toast: (msg, ms = 1800) => ui.toast(msg, ms), root, pad, letters, bursts, stamps, A, getStamps: () => stamps.filter(s => s.mesh.visible && s.born >= 0).map(s => s.mesh.position.clone()) });
+  const word = () => "Collect the letters · " + letters.map(l => (l.got ? l.ch : "_")).join("&nbsp;");   // R7 C2: it names the verb, so it never reads as "type this"
   M.word = word;
 
   if (ascii) ascii.overlayLayer = 1;   // letters stay out of the ASCII conversion and are drawn crisp on top
   function ensureHold(on) { if (M.ascii) M.ascii.hold = on; A.hold = on; }
   function clearAll(instant) { A.fade = instant ? 0 : FADE; A.fadeFrom = performance.now() / 1000; if (instant) endFade(); }
   function stopTimers() { (A.timers || []).forEach(clearTimeout); A.timers = []; }
-  function hideLetters() { for (const l of letters) { l.sprite.visible = false; l.got = false; } for (const b of bursts) { b.m.visible = false; b.t0 = -9; } }
-  function endFade() { stopTimers(); A.fade = 0; for (const s of stamps) { s.mesh.visible = false; s.born = -1; } hideLetters(); A.fadeFrom = 0; A.done = false; A.flash = 0; }
+  function hideLetters() { for (const l of letters) { l.sprite.visible = false; l.got = false; l.show = 0; } for (const b of bursts) { b.m.visible = false; b.t0 = -9; } }
+  function endFade() { stopTimers(); mark.visible = false; A.fade = 0; for (const s of stamps) { s.mesh.visible = false; s.born = -1; } hideLetters(); A.fadeFrom = 0; A.done = false; A.flash = 0; }
   function begin() {
     if (state.act) return;
     endFade();
     state.act = { t0: performance.now() / 1000 }; A.armed = false; A.count = 0; A.last = null; A.flash = 0; A.done = false; A.stampN = 0;
     for (const l of letters) { l.sprite.visible = true; l.got = false; l.popAt = 0; }
-    ensureHold(true); M.toast(word(), 4000);
+    ensureHold(true); M.toast(word(), 4000); ui.hint && ui.hint(HINT); hintTop(true);
     log && log("begin");
   }
   function cancel(why) {
     if (!state.act) return;
-    stopTimers(); state.act = null; A.armed = true; ensureHold(false); hideLetters(); clearAll(false);
+    stopTimers(); state.act = null; A.armed = true; ensureHold(false); hideLetters(); clearAll(false); mark.visible = false; ui.hideHint && ui.hideHint(); hintTop(false);
     log && log("cancel:" + why);
   }
-  function finish() {
+  /* R7: a pickup lands. The letter flies up to the word on screen, the toast fills its slot and ticks, and an event goes out for a sound */
+  const flyers = [];
+  const toastTick = () => { const t = document.getElementById("toast"); if (!t) return; t.classList.remove("r7-tick"); void t.offsetWidth; t.classList.add("r7-tick"); };
+  if (!document.getElementById("r7-gh-tick")) { const st = document.createElement("style"); st.id = "r7-gh-tick"; st.textContent = "@keyframes r7tick{0%{scale:1}35%{scale:1.14}100%{scale:1}}#toast.r7-tick{animation:r7tick .32s ease-out}"; document.head.appendChild(st); }
+  function launch(l, n) {
+    const m = new THREE.Mesh(geo, l.sprite.material.clone()); m.renderOrder = 6; m.layers.set(1); root.add(m);
+    m.onBeforeRender = (rr, sc, cam) => {
+      const q = Math.min(1, (performance.now() / 1000 - m.userData.t0) / 0.5), e = q * q * (3 - 2 * q);
+      _x.set(1, 0, 0).applyQuaternion(cam.quaternion); _z.set(0, 1, 0).applyQuaternion(cam.quaternion);
+      const tgt = _f.copy(cam.position).addScaledVector(_d.set(0, 0, -1).applyQuaternion(cam.quaternion), 6).addScaledVector(_z, 2.6 * Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2) * 2.1 / 2.6);
+      m.position.copy(m.userData.from).lerp(tgt, e); m.scale.set(0.7 * (1 - 0.7 * e), 1.0 * (1 - 0.7 * e), 1); m.quaternion.copy(cam.quaternion); m.matrixWorld.compose(m.position, m.quaternion, m.scale);
+    };
+    m.userData = { t0: performance.now() / 1000, from: l.sprite.position.clone() }; flyers.push(m);
+    toastTick(); try { window.dispatchEvent(new CustomEvent("r7:letter", { detail: { n, total: letters.length, ch: l.ch } })); } catch { /* optional */ }
+  }
+  M.flyers = flyers; M.launch = launch;
+  function finish() {   // 6th letter picked: act ends (no more pickups), a beat, THEN the full word, THEN the old celebration
     if (!state.act) return;
-    state.act = null; A.done = true; A.flash = 1; A.flashAt = performance.now() / 1000;
+    state.act = null; A.finishing = true; mark.visible = false; ui.hideHint && ui.hideHint(); hintTop(false);
+    log && log("beat");
+    A.timers = [setTimeout(() => {
+      const t = performance.now() / 1000; for (const l of letters) { l.show = t; l.sprite.visible = true; l.sprite.material.opacity = 1; }
+      M.toast("<b>Spelled it.</b> G I T H U B", 1700); try { window.dispatchEvent(new CustomEvent("r7:spelled")); } catch { /* optional */ }
+      log && log("word");
+    }, 400), setTimeout(() => { for (const l of letters) l.show = 0; A.finishing = false; celebrate(); }, 1950)];
+  }
+  function celebrate() {
+    A.done = true; A.flash = 1; A.flashAt = performance.now() / 1000;
+    state.act = null; A.done = true; A.flash = 1; A.flashAt = performance.now() / 1000; mark.visible = false; ui.hideHint && ui.hideHint(); hintTop(false);
     for (const l of letters) { l.sprite.visible = true; l.sprite.material.opacity = 1; }
     log && log("flash");
     A.timers = [setTimeout(() => { ensureHold(false); log && log("sweep-back"); }, 700),
@@ -141,9 +185,9 @@ function install({ mr, moon, anchors, spots, ui, ascii, solve, log }) {
     for (let i = 0; i < 5; i++) { const b = bursts[A.bn++ % bursts.length]; b.m.position.copy(pos); b.t0 = performance.now() / 1000; b.m.visible = true;
       const r = new THREE.Vector3(Math.random() - 0.5, 0, Math.random() - 0.5).addScaledVector(up, 0).normalize().multiplyScalar(1.6); b.v.copy(r).addScaledVector(up, 1.2 + Math.random()); b.m.scale.setScalar(0.4); }
   }
-  M.begin = begin; M.cancel = cancel; M.finish = finish; M.endFade = endFade; M.burst = burst;
+  M.pulse = pulseHaptic; M.begin = begin; M.cancel = cancel; M.finish = finish; M.endFade = endFade; M.burst = burst;
 
-  spots.push({ id: "moonwalk-pad", kind: "extra", pos: pad.position.clone(), r: 1.9, body: "moon", label: "Spell it out", target: disc,
+  spots.push({ id: "moonwalk-pad", kind: "extra", pos: pad.position.clone(), r: 1.9, body: "moon", label: "Collect the letters", target: disc,
     off: () => !!state.act || A.done || !A.armed, run: () => begin() });
   if (new URLSearchParams(location.search).has("debug")) window.__moonwalk = M;   // test hook, only with ?debug
   return M;
@@ -154,6 +198,7 @@ function update(dt, t, player, stateName) {
   const m = M; if (!m || !player || !player.body) return;
   const A = m.A, now = performance.now() / 1000, moon = player.body;
   const onMoon = moon.name === "moon";
+  if (onMoon) markMoonVisited();   // R7 D2: AP asks "have you been to the moon yet?" only until you have
   const foot = onMoon ? _f.copy(moon.centre).addScaledVector(player.up, moon.surface(player.up)) : null;
   if (!m.kspot) { m.kspot = m.spots.find(x => x.id === PROJECT) || null; if (m.kspot) { const o = m.kspot.off; m.kspot.off = () => !!m.act || m.nearPad || (o ? o() : false); } }   // the kiosk's "Look closer" is quiet only while the act runs
   m.nearPad = onMoon && !m.act && A.armed && !A.done && foot.distanceTo(m.pad.position) < 2.0;   // beside the pad, its prompt outranks the kiosk's
@@ -180,11 +225,15 @@ function update(dt, t, player, stateName) {
           A.last.copy(foot);
         }
       } else A.last = null;   // airborne: no stamping; the trail resumes from where he lands
+      // R7 C2: the ring follows Blip's feet (flat on the ground, pulsing a little so the eye finds it)
+      m.mark.visible = true; m.mark.position.copy(foot).addScaledVector(player.up, 0.04);
+      _z.copy(player.up); _x.set(0, 1, 0); if (Math.abs(_z.y) > 0.99) _x.set(1, 0, 0);
+      m.mark.quaternion.setFromUnitVectors(_x.set(0, 0, 1), _z); m.mark.scale.setScalar(1 + 0.08 * Math.sin(t * 5));
       // letters: walk through one (any order, any height of hop) to pop it
       for (const l of m.letters) {
         if (l.got || foot.distanceTo(l.base) > HIT_R) continue;
-        l.got = true; l.popAt = now; A.count++; m.burst(l.base.clone().addScaledVector(l.up, LETTER_H * 0.9), l.up);
-        m.toast(m.word(), A.count === m.letters.length ? 1200 : 2200);
+        l.got = true; l.popAt = now; A.count++; m.pulse && m.pulse(); m.launch(l, A.count); m.burst(l.base.clone().addScaledVector(l.up, LETTER_H * 0.9), l.up);
+        if (A.count < m.letters.length) m.toast(m.word(), 2200); else m.toast(m.word(), 800);
       }
       if (A.count >= m.letters.length) m.finish();
     }
@@ -192,6 +241,7 @@ function update(dt, t, player, stateName) {
   // letters bob and face the lens (sprites); a popped one scales up and vanishes
   for (const l of m.letters) {
     if (!l.sprite.visible) continue;
+    if (l.show) continue;
     const bob = 0.1 * Math.sin(t * 1.8 + l.phase);
     l.sprite.position.copy(l.base).addScaledVector(l.up, LETTER_H * 0.62 + 0.45 + bob);
     let k = 1;
@@ -199,6 +249,7 @@ function update(dt, t, player, stateName) {
     if (l.got && !A.done) { const q = (now - l.popAt) / 0.28; if (q >= 1) { l.sprite.visible = false; continue; } k = 1 + 0.9 * q; l.sprite.material.opacity = 1 - q; } else l.sprite.material.opacity = 1;
     l.sprite.scale.set(LETTER_H * 5 / 7 * k, LETTER_H * k, 1);
   }
+  for (let i = flyersOf(m).length - 1; i >= 0; i--) { const f = m.flyers[i]; if (now - f.userData.t0 > 0.5) { root0(f); m.flyers.splice(i, 1); } }
   for (const b of m.bursts) if (b.m.visible) { const q = (now - b.t0) / 0.6; if (q >= 1) { b.m.visible = false; continue; } b.m.position.addScaledVector(b.v, dt); b.v.multiplyScalar(0.94); b.m.material.opacity = 1 - q; }
   if (A.flash > 0 && now - A.flashAt > 1.9) A.flash = 0;
   if (A.fade > 0 && A.fadeFrom) {
@@ -207,3 +258,6 @@ function update(dt, t, player, stateName) {
     if (k >= 1) m.endFade();
   }
 }
+
+const flyersOf = m => m.flyers || [];
+const root0 = f => { f.parent && f.parent.remove(f); f.material.dispose(); };

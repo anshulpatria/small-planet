@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { Pinscreen } from "../pinscreen.js";
+import { PadInput, PadReticle, padConnected } from "./padcursor.js";
 
 /* PIN ART SANCTUARY: a walk-up version of Pin Art 3D (anshulpatria.github.io/3D-pin-art).
    The pinscreen always stands with the cowboy cat pressed into it, in graded relief (the
@@ -24,9 +25,14 @@ export default class PinArtGame {
       this.pins.undoLen = 0;   // the default picture is not an undo step
     });
     this.solved = ctx.isSolved();
+    // R7 T4: gamepad. Left stick / D-pad moves a cursor over the board, A (held) pushes pins, Y undo, Back reset, LB/RB picture.
+    // (Y undo; the picture chips and Reset are the focus-bar buttons, reached with LB / RB by input.js)
+    this.pad = new PadInput(); this.reticle = new PadReticle(); this.padNdc = new THREE.Vector2(0, 0); this.padDrive = false;
+    this._ray = new THREE.Raycaster();
   }
 
   enter() {
+    this.padNdc.set(0, 0); this.padDrive = false;
     this.pins.active = true;
     this.pins.awake = true;
     this.tools();
@@ -44,7 +50,7 @@ export default class PinArtGame {
 
   tools() {
     const ui = this.ctx.ui, P = this.pins;
-    ui.status(this.solved ? null : "Drag across the pins to push them out");
+    ui.status(this.solved ? null : padConnected() ? "Hold A and move the stick to push the pins out" : "Drag across the pins to push them out");
     const img = name => () => { P.setPattern(name); this.tools(); };
     ui.tools([
       { label: "Cowboy cat", group: "img", pressed: P.patternName === "cat", onClick: img("cat") },
@@ -55,14 +61,32 @@ export default class PinArtGame {
     ]);
   }
 
-  exit() { this.pins.active = false; this.down = false; this.lastRay = null; this.pins.pointer(this._noRay || (this._noRay = new THREE.Ray()), false); }
+  exit() { this.padDrive = false; this.reticle.hide(); this.pins.active = false; this.down = false; this.lastRay = null; this.pins.pointer(this._noRay || (this._noRay = new THREE.Ray()), false); }
 
   pointer(e) {
     if (!this.pins.active) return;
+    this.padDrive = false;   // the mouse or a finger takes over again
     this.lastRay = e.ray; this.down = e.down;
   }
 
+  /* gamepad: returns true when the pad is steering this frame (then lastRay / down come from the cursor) */
+  padStep(dt) {
+    const P = this.pad; P.poll();
+    if (!P.on) { this.padDrive = false; this.reticle.hide(); return; }
+    const A = P.held[0];
+    if (P.mag > 0 || A) this.padDrive = true;
+    if (P.edge[3]) this.pins.undo();
+    if (!this.padDrive) return;
+    const sp = 1.25 * P.mag * P.mag + 0.15 * P.mag;   // NDC per second: small tilts nudge, full tilt sweeps
+    const n = this.padNdc, c = this.ctx.camera;
+    n.x = Math.max(-1, Math.min(1, n.x + P.x * sp * dt)); n.y = Math.max(-1, Math.min(1, n.y - P.y * sp * dt));
+    this.down = A;
+    if (c) { this._ray.setFromCamera(n, c); this.lastRay = this._ray.ray.clone(); }
+    this.reticle.show(n.x, n.y, A);
+  }
+
   update(dt, t, focused, playerDist) {
+    if (focused && this.pins.active) this.padStep(Math.min(dt, 0.05));
     this.pins.setView(this.ctx.camera, innerHeight * Math.min(devicePixelRatio, 1.75));
     if (focused && this.lastRay) this.pins.pointer(this.lastRay, this.down);
     this.pins.update(dt, t, playerDist);
@@ -73,5 +97,5 @@ export default class PinArtGame {
     }
   }
 
-  dispose() { this.ctx.scene.remove(this.pins.mesh, this.pins.relief); }
+  dispose() { this.reticle.dispose(); this.ctx.scene.remove(this.pins.mesh, this.pins.relief); }
 }

@@ -817,12 +817,48 @@ export default class BrandStudio {
 
   enter() {
     this.focused = true; this.busy = true;
+    this.bindKeys();
     this.pushStatus();
     this.pushTools();
     // billboard fills the frame; the button lectern (z 0..2) stays above the focus bar
     return { pos: new THREE.Vector3(...CAM.pos), look: new THREE.Vector3(...CAM.look) };
   }
-  exit() { this.focused = false; this.dragging = false; this.cursorCell = -1; }
+  exit() { this.focused = false; this.dragging = false; this.cursorCell = -1; this.padMode = false; this.padA = false; this.unbindKeys(); }
+
+  /* B4 gamepad: input.js turns the D-pad into arrow key events (and B into Escape, which main.js uses to leave), so the
+     cell cursor rides those keys; Enter/Space/E also mark, for a keyboard. A sends no key while a game is open, so the
+     game reads pad button 0 itself in update() (edge-triggered). Any pointer event hands the cursor back to the pointer. */
+  bindKeys() {
+    if (this._onKey || typeof addEventListener === "undefined") return;
+    this.padCell = this.padCell >= 0 ? this.padCell : 4;
+    this._onKey = (e) => {
+      if (!this.focused || e.repeat && /^(enter| |e)$/i.test(e.key)) return;
+      if (e.target && e.target.closest && e.target.closest("input, textarea, button, a")) return;
+      const k = e.key, d = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[k];
+      if (d) {
+        if (!this.padMode) { this.padMode = true; this.busy = true; return; }     // first press just shows the cursor
+        const c = Math.max(0, Math.min(2, (this.padCell % 3) + d[0])), r = Math.max(0, Math.min(2, Math.floor(this.padCell / 3) + d[1]));
+        this.padCell = r * 3 + c; this.busy = true;
+      } else if (k === "Enter" || k === " " || k === "e" || k === "E") {
+        if (!this.padMode) { this.padMode = true; this.busy = true; return; }
+        this.toggle(this.padCell); this.busy = true;
+      }
+    };
+    addEventListener("keydown", this._onKey);
+  }
+  unbindKeys() {
+    if (this._onKey && typeof removeEventListener !== "undefined") removeEventListener("keydown", this._onKey);
+    this._onKey = null;
+  }
+  padPoll() {
+    if (typeof navigator === "undefined" || !navigator.getGamepads) return;
+    let down = false;
+    try { for (const p of navigator.getGamepads() || []) if (p && p.connected && p.buttons && p.buttons[0] && (p.buttons[0].pressed || p.buttons[0].value > 0.5)) down = true; } catch (e) { return; }
+    if (down && !this.padA) {
+      this.padA = true;
+      if (!this.padMode) { this.padMode = true; this.busy = true; } else this.toggle(this.padCell);
+    } else if (!down) this.padA = false;
+  }
 
   pushTools() {
     this.ctx.ui.tools(this.free ? [{ label: "New mark", onClick: () => this.newMark() }] : []);
@@ -867,6 +903,7 @@ export default class BrandStudio {
   }
 
   pointer(e) {
+    if (this.padMode) { this.padMode = false; this.cursorCell = -1; }
     if (e.type === "down") {
       const i = this.cellAt(e);
       if (i >= 0) { this.toggle(i); this.cursorCell = i; }
@@ -910,6 +947,7 @@ export default class BrandStudio {
     dt = Math.min(dt, 0.05);
     this.t = t;
     if (!focused && !this.busy) return;
+    if (focused) { this.padPoll(); if (this.padMode) this.cursorCell = this.padCell; }
     let moving = false;
     const kick = this.kick; this.kick = 0;
     if (this.live.step(this.liveP, dt, kick)) moving = true;
@@ -990,7 +1028,7 @@ export default class BrandStudio {
   }
 
   dispose() {
-    this.disposed = true;
+    this.disposed = true; this.unbindKeys();
     const fonts = typeof document !== "undefined" ? document.fonts : null;
     if (fonts && fonts.removeEventListener) fonts.removeEventListener("loadingdone", this._onFonts);
     this.ctx.ui.tools([]); this.ctx.ui.status(null);

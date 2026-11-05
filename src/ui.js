@@ -165,9 +165,12 @@ export class UI {
     // menu and nothing else (not the panel, map or focus mode underneath)
     addEventListener("keydown", e => {
       if (e.key !== "Escape") return;
+      if (this.closeR7Modal()) { e.preventDefault(); e.stopImmediatePropagation(); return; }   // R7: the topmost .r7-modal wins over everything below it
       const menu = $("menu"), mb = $("menuBtn");
       if (!menu.hidden) { e.preventDefault(); e.stopImmediatePropagation(); this.closeMenu(menu.contains(document.activeElement) || document.activeElement === mb); return; }
       if (bub.hidden) return;
+      // R7: a game's hint bubble opens by itself 500 ms after you step in; it must not eat the first Esc / pad B that leaves the game
+      if (document.body.classList.contains("focus") && !bub.contains(document.activeElement) && document.activeElement !== btn) { this.closeGoal(); return; }
       e.preventDefault(); e.stopImmediatePropagation();
       this.closeGoal(bub.contains(document.activeElement) || document.activeElement === btn);
     }, true);
@@ -175,6 +178,17 @@ export class UI {
       if (!bub.hidden && !bub.contains(e.target) && !btn.contains(e.target)) this.closeGoal();
     }, true);
     this.refreshHint();
+  }
+  /* R7: Escape / pad B closes the topmost visible .r7-modal (any module's). Its own close / cancel button is clicked if it has
+     one; else it gets a cancelable "r7close" event; else it is hidden. Returns true when one was closed. */
+  closeR7Modal() {
+    const ms = [...document.querySelectorAll(".r7-modal")].reverse();
+    const m = ms.find(el => !el.hidden && el.getAttribute("aria-hidden") !== "true" && el.getClientRects().length && getComputedStyle(el).visibility !== "hidden");
+    if (!m) return false;
+    const cb = m.querySelector("[data-r7-close], .r7-close, [data-close], [aria-label^='Close' i], [aria-label^='Cancel' i]");
+    if (cb) cb.click();
+    else if (m.dispatchEvent(new CustomEvent("r7close", { bubbles: true, cancelable: true }))) { m.hidden = true; m.setAttribute("aria-hidden", "true"); }
+    return true;
   }
   goal(html) {
     if ((html || null) !== this._goal) this.wakeDock();   // a new step (arrival, discovery, travel): show the dock for a moment
@@ -313,6 +327,23 @@ export class UI {
       if (calm >= 3) { clearInterval(this._fq); this._fq = null; this.openFinale(); }
     }, 400);
   }
+  /* R7: two tick rows under "N / N projects discovered": every project found, and the butterflies collected */
+  finaleChecks() {
+    let ul = $("finaleChecks");
+    if (!ul) {
+      const st = document.createElement("style");
+      st.textContent = ".finale-checks{list-style:none;margin:10px 0 2px;padding:0;display:grid;gap:6px}.finale-checks li{display:flex;align-items:center;gap:9px;font:700 15px/1.25 var(--f-body);color:var(--cel-ink)}.finale-checks svg{flex:none;width:20px;height:20px;padding:2px;border-radius:50%;background:var(--cel-ink);stroke:var(--cream);stroke-width:3;fill:none}.finale-checks li.todo{opacity:.55}.finale-checks li.todo svg{background:transparent;stroke:var(--cel-ink);border:2px solid var(--cel-ink);padding:0}";
+      document.head.appendChild(st);
+      ul = document.createElement("ul"); ul.id = "finaleChecks"; ul.className = "finale-checks";
+      $("finaleMeta").insertAdjacentElement("afterend", ul);
+    }
+    const bf = (typeof window !== "undefined" && window.__archipelago && window.__archipelago.butterflies) || null;
+    const tot = bf ? bf.total || 0 : 0, got = bf ? Math.min(tot, bf.collected || 0) : 0;
+    const tick = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 12.5l4 4 8-9"/></svg>';
+    const rows = [[true, `All ${PROJECTS.length} projects found`]];
+    if (tot) rows.push([got >= tot, got >= tot ? `All ${tot} butterflies collected` : `${got} of ${tot} butterflies collected`]);
+    ul.innerHTML = rows.map(([ok, t]) => `<li class="${ok ? "" : "todo"}">${tick}<span>${t}</span></li>`).join("");
+  }
   openFinale() {
     if (this.finaleOpen) return;
     clearInterval(this._fq); this._fq = null;
@@ -320,6 +351,7 @@ export class UI {
     this._finaleFrom = document.activeElement;
     this.finaleSeen = true; this.save();
     this.finaleOpen = true;
+    this.finaleChecks();
     $("finale").classList.add("open"); $("finale").setAttribute("aria-hidden", "false");
     setTimeout(() => this.finaleOpen && $("finaleLink").focus({ preventScroll: true }), 350);
   }
@@ -357,6 +389,7 @@ export class UI {
     if (this.secrets.has(id)) return false;
     this.secrets.add(id); this.save();
     this.toast(`Secret ${this.secrets.size} / 3 · ${label}`);
+    if (this.onSecret) this.onSecret(id, this.secrets.size);   // R7: other modules chain onto this (night reveal, badges)
     return true;
   }
 

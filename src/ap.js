@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { AP_HEY, pickApLine, bumpApKnocks, moonVisited } from "./copy-r7.js";
 
 /* AP, the boy who lives in the white igloo studio house.
    ap.glb (blender/build_ap.py) holds a rigged boy, hands in his pockets, with the clips AP_Idle and AP_Walk. He lives
@@ -12,7 +13,6 @@ import * as THREE from "three";
    whole thing is also deterministic under __archipelago.step().
    If ap.glb fails to load, a plain stand-in (capsule boy) plays the same sequence without clips. */
 
-const AP_LINE = "…oh. A visitor. Hey.";
 const DOOR = { x: 0.78, open: 1.85, w: 1.56, h: 2.0, rect: 1.38, pad: 0.16, fd: 0.16, R: 3.3 };   // hinge x (screen-right edge of the opening), open angle (rad about Y), arch size, frame pad / depth, dome radius
 const Z_IN = 2.7, Z_STEP = 4.0, X_OUT = 0;   // hidden inside the dome / standing just outside the doorway, in its middle
 /* AP_Walk is built from the feet (blender/build_ap.py): one cycle carries him STRIDE metres, so the clip phase is driven by the
@@ -349,6 +349,28 @@ export async function installAP(ctx) {
       await tween(0.4, k => { player.facing.copy(f0).applyAxisAngle(player.up, ang * smoother(k)).normalize(); player.orient && player.orient(1); });
     }
   };
+  /* R7 D1/D2: the slate (one at a time: a newer line replaces the older) and the state-aware line for this knock */
+  // R7: AP speaks too: his line types out in step with his own babble (sfx 'AP', Lumen's chunks pitched down); muted, it types silently
+  // R7 timing: the box and the voice start on the SAME beat (the babble's first chunk is held until the slate has popped, SAY_DELAY),
+  // and say() resolves to how long the line takes to type, so the knock can wait for it before he goes in.
+  const SAY_DELAY = 0;   // the first chunk sounds as the box pops
+  const say = async (html, ms, top = 2.0) => {
+    if (!ctx.slate) return 0;
+    const sfx = typeof window !== "undefined" && window.__archipelago && window.__archipelago.ui && window.__archipelago.ui.sfx;
+    if (sfx && sfx.say && ctx.slate.armTyping) ctx.slate.armTyping(html);
+    await ctx.slate.say({ name: "AP", html, ms, base: () => ap.worldFoot(), up: () => house.localToWorld(new THREE.Vector3(0, 1, 0)).sub(house.localToWorld(new THREE.Vector3())).normalize(), top });
+    let dur = String(html).replace(/<[^>]*>/g, "").length * 0.075;   // fallback estimate if there is no voice engine
+    if (sfx && sfx.say && ctx.slate.startReveal) { const pl = sfx.say("AP", html, { delay: SAY_DELAY, reveal: (pl, t0, now, stop) => ctx.slate.startReveal(pl, t0, now, stop) }); if (pl && pl.dur) dur = pl.dur; }
+    ap.lastSay = { html, dur, at: performance.now() };
+    return dur + SAY_DELAY;
+  };
+  const apLine = () => {
+    let st = {}; try { st = (ctx.state && ctx.state()) || {}; } catch { /* the getter is optional */ }
+    const b = st.butterflies || null;
+    const line = pickApLine({ moon: !!st.moonFound || moonVisited(), butterflies: b, allFound: !!st.allFound, butterfliesDone: !!b && b.total > 0 && b.got >= b.total });
+    bumpApKnocks(); ap.lastLine = line; return line;
+  };
+  if (new URLSearchParams(location.search).has("debug")) ap._ctx = ctx;   // test hook: lets a harness swap ctx.state
   ap.knock = async function () {
     if (ap.busy) return;
     ap.busy = true; player.frozen = true;
@@ -363,6 +385,7 @@ export async function installAP(ctx) {
       // he is behind the doorway patch: show him there, so nothing pops
       holder.rotation.y = 0; place(Z_IN); holder.visible = true;
       log("walking-out");
+      const heySaid = say(AP_HEY, 1700);   // R7 D1: the greeting as he steps out; the second line comes at the look
       setAnim("Walk", 0.25);
       const dOut = Z_STEP - Z_IN;
       await walkPath(s => [X_OUT, Z_IN + s, 0], dOut, stopPhase(dOut), true);
@@ -375,8 +398,12 @@ export async function installAP(ctx) {
       await tween(0.55, k => { const e = ease(k); holder.rotation.y = body * e; ap.headYaw = hd * e; ap.headPitch = 0.03 * e; });
       await sleep(1.5);   // the beat
       log("looked");
-      if (ctx.slate) ctx.slate.say({ name: "AP", html: AP_LINE, ms: 2200, base: () => ap.worldFoot(), up: () => house.localToWorld(new THREE.Vector3(0, 1, 0)).sub(house.localToWorld(new THREE.Vector3())).normalize(), top: 2.0 });
-      await sleep(1.2);
+      await heySaid;
+      const lineDur = await say(apLine(), 3600, 1.72);   // a longer line grows upward: sit it lower so a close lens keeps the whole slate in frame
+      log("line-start");
+      await sleep(lineDur + 1.2);   // he stays until the line has finished typing, plus a reading beat
+      log("line-end");
+      if (ctx.slate && ctx.slate.hide) { ctx.slate.hide(); await sleep(0.3); }   // the box pops out BEFORE he moves: it never follows him into the igloo
       await tween(0.45, k => { const e = ease(k); ap.headYaw = hd * (1 - e); ap.headPitch = 0.03 * (1 - e); });
       // turn about on the spot with short steps (round toward the side he is already facing), then walk straight in until hidden
       log("turning");
@@ -394,7 +421,7 @@ export async function installAP(ctx) {
       await tween(0.8, k => setDoor(DOOR.open * (1 - ease(k))));
       setDoor(0); log("hidden");
       await closing;
-    } finally { if (ap.camFocused && ctx.rig) { camJob.job = null; ctx.rig.release(); ap.camFocused = false; } player.cinematic = false; ap.headYaw = ap.headPitch = 0; ap.busy = false; player.frozen = false; }
+    } finally { try { if (ctx.slate && ctx.slate.cur && ctx.slate.cur.name === "AP") ctx.slate.hide(true); } catch { /* optional */ } if (ap.camFocused && ctx.rig) { camJob.job = null; ctx.rig.release(); ap.camFocused = false; } player.cinematic = false; ap.headYaw = ap.headPitch = 0; ap.busy = false; player.frozen = false; }
   };
   installChimney(ctx, ap);
   return ap;

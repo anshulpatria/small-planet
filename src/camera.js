@@ -9,7 +9,8 @@ const FOLLOW_MAX = 1.8;    // rad/s: the fastest the lens swings round behind th
 export const RECENTRE_W = 2.6;   // spring rate, rad/s
 /* Zoom recentre (zoom only, the direction recentre above is separate): ZOOM_RECENTRE_S after the last wheel or pinch, the zoom
    eases back to the distance it had before the player zoomed (the default follow distance, or a scripted view's own). */
-export const ZOOM_RECENTRE_S = 2.5, ZOOM_RECENTRE_RATE = 1.6;   // s of no zoom input; 1/s exponential ease (~2 s to within 5 %)
+export const ZOOM_RECENTRE_S = 2.5, ZOOM_RECENTRE_RATE = 1.6;
+const ZOOM_WALK_S = 0.6, PITCH_WALK_RATE = 1.6;   // R7: once Blip walks, a zoom eases home after 0.6 s (not 2.5) and a manual tilt eases home at the zoom's rate (~2 s)   // s of no zoom input; 1/s exponential ease (~2 s to within 5 %)
 /* Far-zoom occlusion. Zoomed out, only TERRAIN (and anything the occluder fade cannot draw see-through) moves the lens, so
    it does not snap in to every tree, post or house that crosses the line to Blip; a prop fades
    instead (occfade.js, every non-terrain occluder is handed to it). The prop pull-in is kept only for a close lens: below
@@ -67,6 +68,7 @@ export class CameraRig {
     if (Math.abs(dx) > 0) { this.fwd.applyAxisAngle(this.up, -dx * 0.006); this.mvFwd.applyAxisAngle(this.up, -dx * 0.006); }   // a drag turns the move frame with the lens
     this.pitch = THREE.MathUtils.clamp(this.pitch + dy * 0.003, 0.12, 1.1);
     if (dx || dy) { this.seenFwd.copy(this.fwd); this.seenPitch = this.pitch; }
+    if (dy) this.pitchUser = true;   // R7: a manual tilt is undone by walking, like the yaw
   }
   zoom(z) {
     if (!z) return;
@@ -157,7 +159,7 @@ export class CameraRig {
     const cam = this.camera;
     if (this.zoomBase !== null) {   // a script that set distWanted since the last zoom owns the zoom now
       if (Math.abs(this.distWanted - this.zoomSeen) > 1e-6) this.zoomBase = null;
-      else if ((this.zoomT += dt) >= ZOOM_RECENTRE_S) {
+      else if ((this.zoomT += dt) >= ZOOM_RECENTRE_S || (this._trav && this.zoomT >= ZOOM_WALK_S)) {   // R7: walking brings the zoom home too
         this.distWanted = THREE.MathUtils.damp(this.distWanted, this.zoomBase, ZOOM_RECENTRE_RATE, dt);
         if (Math.abs(this.distWanted - this.zoomBase) < 0.02) { this.distWanted = this.zoomBase; this.zoomBase = null; }
         this.zoomSeen = this.distWanted;
@@ -173,7 +175,7 @@ export class CameraRig {
       return;
     }
     // a scripted aim changed fwd or pitch from outside the rig (moon reveal, bench, stand-up): it owns the lens now
-    if (this.fwd.distanceToSquared(this.seenFwd) > 1e-10 || Math.abs(this.pitch - this.seenPitch) > 1e-7) { this.freed = false; this.mvFwd.copy(this.fwd); }
+    if (this.fwd.distanceToSquared(this.seenFwd) > 1e-10 || Math.abs(this.pitch - this.seenPitch) > 1e-7) { this.freed = false; this.mvFwd.copy(this.fwd); this.pitchUser = false; }
     const dsp = this.lastPos && dt > 0 ? player.position.distanceTo(this.lastPos) / dt : 0;
     const still = this.lastPos ? dsp < 0.2 : false;   // standing (< 0.2 m/s)
     if (dsp < 25) this.vel = THREE.MathUtils.damp(this.vel, dsp, 10, dt); else this.vel = 0;   // a teleport (hop, cannon landing) is not travel
@@ -184,6 +186,7 @@ export class CameraRig {
     this.mvFwd.addScaledVector(this.up, -this.mvFwd.dot(this.up)).normalize();
     if (this.freed) this.idleT += dt;
     const travelling = !player.flight && this.lockFwd && this.vel > 0.8 && !player.frozen && (!this.freed || this.idleT >= IDLE_RECENTRE_S);
+    this._trav = travelling;
     if (player.flight) {
       const f = player.facing.clone().addScaledVector(this.up, -player.facing.dot(this.up)).normalize();
       this.fwd.lerp(f, 1 - Math.exp(-dt * 4)).normalize();
@@ -196,6 +199,10 @@ export class CameraRig {
       const step = Math.sign(err || 1) * Math.min(FOLLOW_MAX, FOLLOW_RATE * a) * gate * dt;
       this.fwd.applyAxisAngle(this.up, Math.abs(step) > a ? err : step).normalize();
       this.freed = false; this.yawV = this.pitchV = 0;
+      if (this.pitchUser) {   // R7: walking also eases a manual tilt back to the home pitch (same gate as the yaw follow)
+        this.pitch = THREE.MathUtils.damp(this.pitch, this.homePitch, PITCH_WALK_RATE * THREE.MathUtils.smoothstep(this.vel, 0.8, 2.2), dt);
+        if (Math.abs(this.pitch - this.homePitch) < 0.002) { this.pitch = this.homePitch; this.pitchUser = false; }
+      }
     } else if (this.freed) {
       if (this.idleT >= IDLE_RECENTRE_S && still) {
         const f = _f.copy(player.facing).addScaledVector(this.up, -player.facing.dot(this.up)).normalize();
@@ -204,8 +211,11 @@ export class CameraRig {
         this.fwd.copy(f).applyQuaternion(_rq.setFromAxisAngle(this.up, y2));
         const [p2, pv] = springStep(this.pitch - this.homePitch, this.pitchV, RECENTRE_W, dt); this.pitchV = pv;
         this.pitch = this.homePitch + p2;
-        if (Math.abs(y2) < 0.002 && Math.abs(p2) < 0.002) this.freed = false;
+        if (Math.abs(y2) < 0.002 && Math.abs(p2) < 0.002) { this.freed = false; this.pitchUser = false; }
       } else this.yawV = this.pitchV = 0;
+    } else if (this.pitchUser) {   // R7: the yaw already came home (a walk took the lens) but Blip stopped before the tilt did: finish it
+      this.pitch = THREE.MathUtils.damp(this.pitch, this.homePitch, PITCH_WALK_RATE, dt);
+      if (Math.abs(this.pitch - this.homePitch) < 0.002) { this.pitch = this.homePitch; this.pitchUser = false; }
     }
     /* Occlusion, without pumping:
        - ground and terraces in the way -> lift the camera over them (pitch boost);

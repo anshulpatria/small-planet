@@ -351,6 +351,83 @@ export function tickParams(closeness) {
   return { rate: 0.7 + 1.0 * c, cutoff: 700 * Math.pow(10, c), gain: 0.3 + 0.7 * c };   // 0.70..1.70, 700 Hz..7 kHz, 0.3..1.0
 }
 const FOLEY_URL = new URL('../assets/audio/foley.json', import.meta.url);
+/* R7 F2 (v2): the creature babble planner. Pure and deterministic given `rng`, so the offline renders in the evidence use this
+   very function. The line's text drives a string of short chunks (about one per syllable, with a small foley/consonant chunk
+   before some of them); punctuation sets the contour: "?" rises, "!" spikes, "..." trails off (falling, quieter, stretched),
+   "," lifts and pauses briefly, "." falls and pauses. spec = one creature's manifest entry:
+   { cps (syllables/s), vdur (mean vowel chunk s), pitch: [lo, hi] semitones, modem (0..1 chance per phrase), chunks: {..} }.
+   Returns { events: [{ t, cls, key, pick, rate, gain }], dur, speed }. Chunk keys: a e i o u (voiced), plo, fri, liq, mod. */
+export function plainLine(text) {
+  return String(text == null ? '' : text).replace(/<\/?[a-z][^>]*>/gi, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+}
+const ONSET_CLASS = (c) => 'bpdtkgqc'.includes(c) ? 'plo' : 'sfvzhxj'.includes(c) ? 'fri' : 'lrmnwy'.includes(c) ? 'liq' : null;
+const ONSET_P = { plo: 0.75, fri: 0.7, liq: 0.35 };
+export function syllabify(word) {
+  const w = word.replace(/[^a-z]/g, ''); if (!w) return [];
+  const out = []; const re = /([^aeiouy]*)([aeiouy]+)/g; let m;
+  while ((m = re.exec(w))) out.push({ onset: m[1] ? m[1][0] : '', v: m[2][0] === 'y' ? 'i' : m[2][0] });
+  if (!out.length) out.push({ onset: w[0], v: null });   // "hm", "psst": no vowel, a consonant puff only
+  return out;
+}
+export function planBabble(text, spec, rng, o) {
+  rng = rng || Math.random; o = o || {};
+  const maxS = o.maxS || 5.0;
+  // src = the line exactly as the slate shows it (tags stripped, five entities decoded: slate.js plainText), so a char index here is a char index there
+  const src = plainLine(text), low = src.toLowerCase().replace(/’/g, "'");
+  const toks = [...low.matchAll(/[a-z']+|\.{2,}|…|[,.!?;:—–-]/g)].map(m => ({ s: m[0], i: m.index }));
+  const lo = spec.pitch ? spec.pitch[0] : -5, hi = spec.pitch ? spec.pitch[1] : 9, vdur = spec.vdur || 0.12;
+  const attempt = (speed) => {
+    const ev = [], cps = (spec.cps || 7) * speed;
+    let tt = 0, sem = 0, phraseStart = 0, sylInPhrase = [];   // sylInPhrase: indices into ev of this phrase's vowel events
+    const flush = (punct) => {
+      const idx = sylInPhrase, n = idx.length; sylInPhrase = [];
+      if (n) {
+        const bump = (j, st, g, stretch) => { const e = ev[idx[n - 1 - j]]; if (!e) return; e.rate *= Math.pow(2, st / 12); e.gain *= g; };
+        if (punct === '?') { bump(1, 3, 1.05); bump(0, 6.5, 1.1); }
+        else if (punct === '!') { bump(1, 5, 1.35); bump(0, 2, 1.15); }
+        else if (punct === '…') { bump(2, -1.5, 0.8); bump(1, -3, 0.6); bump(0, -5, 0.4); }
+        else if (punct === ',') { bump(0, 1.5, 1.0); }
+        else if (punct === '.') { bump(0, -2, 0.95); }
+      }
+      if (punct === '…') tt += 0.38; else if (punct === '.') tt += 0.26; else if (punct === '?' || punct === '!') tt += 0.3; else if (punct === ',') tt += 0.14;
+      sem = (rng() - 0.5) * 3; phraseStart = ev.length;
+      if (spec.modem && rng() < spec.modem && n >= 2) ev.push({ t: Math.max(0, tt - 0.12), cls: 'mod', key: 'mod', pick: rng(), rate: 0.9 + rng() * 0.3, gain: 0.5 });
+    };
+    const rv = [];   // reveal schedule: { t, n } = at time t the first n chars of src are shown
+    for (let ti = 0; ti < toks.length; ti++) {
+      const tkO = toks[ti], tk = tkO.s;
+      if (/^[a-z']+$/.test(tk)) {
+        const syl = syllabify(tk), nx = toks[ti + 1], tail = nx && /^[,.!?;:—–-]$|^\.{2,}$|^…$/.test(nx.s) && nx.i === tkO.i + tk.length ? nx.s.length : 0;
+        if (!syl[0].v) rv.push({ t: tt, n: tkO.i + tk.length + tail });
+        syl.forEach((s, si) => {
+          sem = sem * 0.8 + (rng() - 0.5) * 2.6 - 0.3;               // a short random walk with a pull to centre and a gentle declination
+          const stress = si === 0 ? 1.2 : 0, st = Math.max(lo, Math.min(hi, sem + stress));
+          const period = (1 / cps) * (0.85 + 0.3 * rng()), g = (si === 0 ? 1.12 : 0.92) * (0.9 + 0.2 * rng());
+          const cls = s.onset ? ONSET_CLASS(s.onset) : null;
+          let lead = 0;
+          if (cls && rng() < (ONSET_P[cls] || 0.5)) { ev.push({ t: tt, cls, key: cls, pick: rng(), rate: Math.pow(2, (st + (rng() - 0.5)) / 12), gain: 0.75 * g }); lead = Math.min(0.035, period * 0.3); }
+          if (s.v) { ev.push({ t: tt + lead, cls: 'v', key: s.v, pick: rng(), rate: Math.pow(2, st / 12), gain: g }); sylInPhrase.push(ev.length - 1);
+            rv.push({ t: tt + lead, n: si === syl.length - 1 ? tkO.i + tk.length + tail : tkO.i + Math.max(1, Math.round(tk.length * (si + 1) / syl.length)) }); }
+          tt += period;
+        });
+        tt += 0.02;                                                // a hair of space between words
+      } else {
+        flush(/^\.{2,}$|…/.test(tk) ? '…' : /[;:—–-]/.test(tk) ? ',' : tk);
+      }
+    }
+    flush(null);
+    let end = 0; for (const e of ev) end = Math.max(end, e.t + (e.cls === 'v' ? vdur : 0.08) / e.rate);
+    return { ev, end, rv };
+  };
+  let speed = 1, r = attempt(speed);
+  if (r.end > maxS) { speed = Math.min(1.5, r.end / maxS); r = attempt(speed); }
+  const events = r.ev.filter(e => e.t < maxS).sort((a, b) => a.t - b.t);
+  const reveal = r.rv.filter(e => e.t < maxS).sort((a, b) => a.t - b.t);
+  const lastT = reveal.length ? reveal[reveal.length - 1].t : 0;
+  reveal.push({ t: lastT + 0.12, n: src.length });   // a line cut at maxS still finishes with its last chunk
+  return { events, dur: Math.min(maxS + 0.2, Math.max(r.end, lastT + 0.2)), speed, reveal, len: src.length };
+}
+const CREATURES_URL = new URL('../assets/audio/creatures.json', import.meta.url);
 const FOLEY_NAMES = { jump: 1, land: 1, cannon_wind: 1, cannon_fire: 1, shutter: 1 };
 export function createSfx(amb) {
   let bus = null, busCtx = null;
@@ -368,6 +445,23 @@ export function createSfx(amb) {
     } catch (_) { foleyState = 'failed'; }
   }
   if (amb && typeof amb._onLoad === 'function') amb._onLoad(loadFoley);
+  /* R7 F2: creature interaction voices. A second sprite (creatures.m4a/json, built by audio-src/creatures/make-creatures.py
+     from recorded cello/viola sustains and earshot bank foley; no oscillators). Loaded through the same unmuted load chain.
+     No synth fallback on purpose: until it is decoded (or if it fails) voice() stays silent rather than beeping. */
+  let cre = null, creBuf = null, creState = 'none';
+  async function loadCreatures(ctx) {
+    if (creState !== 'none' || !ctx || typeof fetch !== 'function') return;
+    creState = 'loading';
+    try {
+      const r = await fetch(CREATURES_URL); if (!r.ok) throw new Error('HTTP ' + r.status);
+      const man = await r.json(); if (!man || !man.voices || !man.file) throw new Error('bad creatures manifest');
+      const r2 = await fetch(new URL(man.file, CREATURES_URL)); if (!r2.ok) throw new Error('HTTP ' + r2.status);
+      const bytes = await r2.arrayBuffer();
+      const b = await new Promise((res, rej) => { try { const p = ctx.decodeAudioData(bytes, res, rej); if (p && p.then) p.then(res, rej); } catch (e) { rej(e); } });
+      cre = man; creBuf = b; creState = 'ready';
+    } catch (_) { creState = 'failed'; }
+  }
+  if (amb && typeof amb._onLoad === 'function') amb._onLoad(loadCreatures);
   const cache = new Map();
   const voices = [];             // local fallback only: {src, t0, end, peak}
   let lastStep = -1, lastStepVar = -1, lastByName = Object.create(null), pendingStar = null;
@@ -491,8 +585,166 @@ export function createSfx(amb) {
     } catch (_) { return null; }
   }
 
+  /* R7 F2 (v2): creature babble. voice(name, { text, ready }) = the creature's opening emotion one-shot now, then, once
+     `ready()` says the slate has popped (animation first, THEN the slate: the order in main.js talk() is untouched), the
+     line's text drives a string of short chunks from that creature's own bank (planBabble, above). emote(name, kind) plays
+     one emotion one-shot ('happy' | 'annoyed' | 'surprised'). Same gates as play() (running context, not muted); the whole
+     babble shares the voice cap and the peak budget as ONE voice (stop() silences every chunk). Every call, played or dropped,
+     is appended to voiceLog and printed with console.debug('[sfx.voice]'). Chunk and emotion banks: creatures.m4a/json. */
+  const voiceLog = [], lastVoice = Object.create(null), lastEmo = Object.create(null);
+  const logVoice = (e) => { voiceLog.push(e); if (voiceLog.length > 80) voiceLog.shift(); try { console.debug('[sfx.voice]', JSON.stringify(e)); } catch (_) { } };
+  const voiceKey = (n) => { const s = String(n || '').toLowerCase(); if (s === 'ap') return 'ap'; for (const k of ['lumen', 'sid', 'gulp', 'chomp', 'zip']) if (s.includes(k)) return k; return null; };
+  /* R7: AP (the igloo NPC) talks too. He has no bank of his own: he borrows Lumen's warm chunks, pitched down and a little slower,
+     with a narrower, flatter contour, so he reads as a calm grown-up next to the creatures. */
+  const AP_FROM = 'lumen';
+  const bankV = (key) => { if (!cre) return null; if (key !== 'ap' || cre.voices.ap) return cre.voices[key]; const L = cre.voices[AP_FROM]; if (!L) return null;
+    const p = L.pitch || [-5, 9]; return { ...L, pitch: [p[0] - 5, p[0] + Math.round((p[1] - p[0]) * 0.5) - 3], cps: (L.cps || 7) * 0.85, modem: 0 }; };
+  const bankVary = (key) => cre && (cre.vary[key] || cre.vary[AP_FROM]);   // 'ap' has its own dedicated bank now (make-babble.py); the Lumen-pitched-down fallback is kept for an old sprite
+  const gate = (key, why0) => {
+    const ctx = amb && amb.ctx;
+    if (!key) return 'unknown creature';
+    if (!ctx || !amb.out) return 'no context';
+    if (amb.muted) return 'muted';
+    if (ctx.state !== 'running') return 'ctx ' + ctx.state;
+    if (creState !== 'ready' || !bankV(key)) return 'sprite ' + creState;
+    return null;
+  };
+  const peakFilter = (ctx, vary) => {
+    const pk = ctx.createBiquadFilter(); pk.type = 'peaking'; pk.Q.value = 1.1;
+    pk.frequency.value = vary.f[0] + Math.random() * (vary.f[1] - vary.f[0]); pk.gain.value = vary.gdb * (0.4 + 0.6 * Math.random());
+    return pk;
+  };
+  function emote(name, kind, opts) {
+    const o = opts || {}, key = voiceKey(name);
+    try {
+      const why = gate(key); if (why) { logVoice({ key, emote: kind, ok: false, why }); return false; }
+      const V = bankV(key), takes = V.emo && V.emo[kind];
+      if (!takes || !takes.length) { logVoice({ key, emote: kind, ok: false, why: 'no such emotion' }); return false; }
+      const ctx = amb.ctx, now = ctx.currentTime, out = ensureBus(ctx);
+      if (!out) return false;
+      let ti = (Math.random() * takes.length) | 0;
+      if (takes.length > 1 && ti === lastEmo[key + kind]) ti = (ti + 1) % takes.length;
+      lastEmo[key + kind] = ti;
+      const tk = takes[ti], vary = bankVary(key);
+      const lvl = Math.max(0, Math.min(2, o.gain == null ? 1 : +o.gain || 0));
+      const rate = 1 + (Math.random() * 2 - 1) * vary.rate, dB = (Math.random() * 2 - 1) * 1.0;
+      const want = (+V.peak || 0.3) * lvl * BUS_GAIN;
+      const k = shared() ? amb._budget(now, want) : 1;
+      if (k === 0) { logVoice({ key, emote: kind, ok: false, why: 'budget' }); return false; }
+      const gv = lvl * Math.pow(10, dB / 20) * k;
+      const src = ctx.createBufferSource(); src.buffer = creBuf; src.playbackRate.value = rate;
+      const pk = peakFilter(ctx, vary), g = ctx.createGain(); g.gain.value = gv;
+      if (typeof amb._noteNodes === 'function') amb._noteNodes(3);
+      src.connect(pk); pk.connect(g); g.connect(out);
+      src.start(now, +tk.start + (+cre.decoderOffsetSamples || 0) / (+cre.sampleRate || 48000), +tk.dur);
+      const v = { src, t0: now, end: now + tk.dur / rate + 0.05, peak: want * gv, kind: 'emote:' + key,
+        stop() { try { src.stop(); } catch (_) { } v.end = 0; } };
+      src.onended = () => { try { g.disconnect(); pk.disconnect(); } catch (_) { } v.end = 0; };
+      if (shared()) amb._claimVoice(v);
+      logVoice({ t: +now.toFixed(3), key, emote: kind, take: ti, rate: +rate.toFixed(3), gain: +gv.toFixed(3), budgetK: +k.toFixed(2), peakF: Math.round(pk.frequency.value), peakDb: +pk.gain.value.toFixed(1), busGain: BUS_GAIN, dur: +(tk.dur / rate).toFixed(2), ok: true });
+      return true;
+    } catch (e) { return false; }
+  }
+  let curBabble = null;
+  function stopBabble(tail) {
+    const b = curBabble; if (!b) return false; curBabble = null;
+    try {
+      const now = b.ctx.currentTime, t = tail == null ? 0.12 : tail;
+      b.master.gain.cancelScheduledValues(now); b.master.gain.setValueAtTime(b.master.gain.value, now); b.master.gain.linearRampToValueAtTime(0, now + t);
+      for (const [sr] of b.srcs) { try { sr.stop(now + t + 0.03); } catch (_) { } }
+      logVoice({ key: b.key, stopBabble: true, tailMs: Math.round(t * 1000), ok: true });
+    } catch (_) { }
+    return true;
+  }
+  const nowS = () => performance.now() / 1000;
+  const DEFAULT_SPEC = { cps: 7, vdur: 0.12, pitch: [-5, 9], modem: 0 };
+  // no sound (muted, or the sprite is not ready): the text still types at the very same pace, from the same planner
+  function silent(key, text, o, why) {
+    const spec = bankV(key) || DEFAULT_SPEC, plan = planBabble(text, spec, Math.random);
+    if (typeof o.reveal === 'function') o.reveal(plan, nowS(), nowS, null);
+    logVoice({ key, say: plainLine(text).slice(0, 48), silent: true, why, chunks: 0, dur: +plan.dur.toFixed(2), revealSteps: plan.reveal.length, ok: true });
+    return plan;
+  }
+  function say(name, text, opts) {
+    const o = opts || {}, key = voiceKey(name);
+    try {
+      const why = gate(key); if (why) return key ? silent(key, text, o, why) : false;
+      const V = bankV(key), vary = bankVary(key), ctx = amb.ctx, now = ctx.currentTime, out = ensureBus(ctx);
+      if (!out) return silent(key, text, o, 'no bus');
+      const plan = planBabble(text, V, Math.random);
+      if (!plan.events.length) { logVoice({ key, say: true, ok: false, why: 'empty line' }); return false; }
+      const lvl = Math.max(0, Math.min(2, o.gain == null ? 1 : +o.gain || 0));
+      const want = (+V.chunkPeak || 0.3) * lvl * BUS_GAIN * 1.3;   // chunks seldom overlap: about 1.3 chunk peaks at once
+      let k = shared() ? amb._budget(now, want) : 1;
+      if (k === 0) { logVoice({ key, say: true, ok: false, why: 'budget (played at 0.3 instead)' }); k = 0.3; }   // a creature's voice is never dropped by the budget: it is the point of the poke
+      stopBabble(0.05);
+      const master = ctx.createGain(); master.gain.value = lvl * k * Math.pow(10, ((Math.random() * 2 - 1) * 1.0) / 20);
+      const pk = peakFilter(ctx, vary);
+      master.connect(pk); pk.connect(out);
+      const off = (+cre.decoderOffsetSamples || 0) / (+cre.sampleRate || 48000), srcs = [], t0 = now + 0.05 + (+o.delay || 0);
+      for (const e of plan.events) {
+        const bank = V.chunks[e.key]; if (!bank || !bank.length) continue;
+        const ck = bank[Math.min(bank.length - 1, (e.pick * bank.length) | 0)];
+        const src = ctx.createBufferSource(); src.buffer = creBuf;
+        src.playbackRate.value = Math.max(0.5, Math.min(2.4, e.rate * (1 + (Math.random() * 2 - 1) * 0.02)));
+        const g = ctx.createGain(); g.gain.value = e.gain;
+        src.connect(g); g.connect(master);
+        src.start(t0 + e.t, +ck.start + off, +ck.dur); srcs.push([src, g]);
+      }
+      if (typeof amb._noteNodes === 'function') amb._noteNodes(srcs.length * 2 + 2);
+      const v = { src: srcs[0] && srcs[0][0], t0, end: t0 + plan.dur + 0.1, peak: want * k, kind: 'babble:' + key,
+        stop() { for (const [s] of srcs) { try { s.stop(); } catch (_) { } } v.end = 0; } };
+      curBabble = { ctx, master, srcs, key };
+      if (srcs.length) srcs[srcs.length - 1][0].onended = () => { for (const [s, g] of srcs) { try { g.disconnect(); } catch (_) { } } try { master.disconnect(); pk.disconnect(); } catch (_) { } v.end = 0; if (curBabble && curBabble.master === master) curBabble = null; };
+      if (shared()) amb._claimVoice(v);
+      // the reveal runs on the AUDIO clock: chunk i sounds at t0 + e.t, and its syllable is revealed at the same instant
+      if (typeof o.reveal === 'function') o.reveal(plan, t0, () => ctx.currentTime, stopBabble);
+      logVoice({ t: +t0.toFixed(3), key, say: plainLine(text).slice(0, 48), chunks: srcs.length, dur: +plan.dur.toFixed(2), speed: +plan.speed.toFixed(2),
+        masterGain: +master.gain.value.toFixed(3), budgetK: +k.toFixed(2), peakF: Math.round(pk.frequency.value), busGain: BUS_GAIN, revealSteps: plan.reveal.length, ok: true });
+      return plan;
+    } catch (e) { return false; }
+  }
+  const OPENING = { lumen: 'happy', sid: 'happy', gulp: 'surprised', chomp: 'annoyed', zip: 'happy' };   // what each creature does the moment you poke it
+  function voice(name, opts) {
+    const o = opts || {}, key = voiceKey(name);
+    try {
+      if (!key) { logVoice({ name, ok: false, why: 'unknown creature' }); return false; }
+      // NOT gated here (R7 fix, Lumen): Lumen is the first creature a visitor pokes, usually while the sprite is still decoding or the
+      // arrival radio is on. The opening one-shot and the babble each gate themselves, and wait for the sprite instead of giving up.
+      try { if (typeof window !== 'undefined' && window.__radio && window.__radio.stop) window.__radio.stop(); } catch (_) { }
+      const t0 = performance.now(), ctx0 = amb && amb.ctx;
+      if (ctx0 && lastVoice[key] != null && ctx0.currentTime - lastVoice[key] < 0.4) { logVoice({ key, ok: false, why: 'rate limit' }); return false; }
+      if (ctx0) lastVoice[key] = ctx0.currentTime;
+      const tryEmote = () => {
+        if (amb && !amb.muted && creState !== 'ready' && creState !== 'failed' && performance.now() - t0 < 3000) return setTimeout(tryEmote, 80);   // sprite still decoding
+        emote(name, o.emoteKind || OPENING[key], { gain: o.gain });
+      };
+      if (typeof o.emoteWhen === 'function') {
+        // the opening one-shot lands on a beat of the trick, not at the poke: wait for the cue, then `emoteDelay` ms (Chomp: on its snap)
+        const iv0 = setInterval(() => {
+          let r = false; try { r = !!o.emoteWhen(); } catch (_) { }
+          if (r) { clearInterval(iv0); setTimeout(tryEmote, +o.emoteDelay || 0); }
+          else if (performance.now() - t0 > 8000) { clearInterval(iv0); tryEmote(); }
+        }, 16);
+      } else tryEmote();
+      if (o.text && typeof o.ready === 'function') {
+        let sawIdle = false;
+        const iv = setInterval(() => {
+          let r = false; try { r = !!o.ready(); } catch (_) { }
+          if (!r) sawIdle = true;
+          else if (sawIdle) { clearInterval(iv); say(name, o.text, { gain: o.gain, reveal: o.reveal }); return; }
+          if (performance.now() - t0 > 25000) clearInterval(iv);
+        }, 30);
+      } else if (o.text) say(name, o.text, { gain: o.gain, reveal: o.reveal });
+      return true;
+    } catch (e) { return false; }
+  }
+
   return {
     play,
+    voice, emote, say, stopBabble,
+    get voiceLog() { return voiceLog.slice(); },
+    get creaturesState() { return creState; },
     tick,
     step(surface) { return play('step', { surface }); },
     get names() { return SFX_NAMES.slice(); },

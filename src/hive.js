@@ -104,7 +104,7 @@ export class HiveFloor {
      opts.centre / opts.surface: the planet's centre and its analytic surface(dir) (distance from the centre), sampled per vertex.
      opts.at: [x, f] metres from the visitor spot, in the frame (local: it follows the planet when it is resized).
      opts.screen: the kiosk screen mesh (shows the move you stand on). opts.onSolved: fired once. */
-  constructor(scene, frame, { centre, surface, at = [2.5, -3.5], screen = null, onSolved = null, pitch = PAD_W + 0.07, gap = 0.07, rings = 2, supports = null } = {}) {
+  constructor(scene, frame, { centre, surface, at = [0, -3.5], screen = null, onSolved = null, pitch = PAD_W + 0.07, gap = 0.07, rings = 2, supports = null } = {}) {
     this.scene = scene; this.frame = frame; this.onSolved = onSolved; this.screen = screen;
     this.pitch = pitch; this.Rc = (pitch - gap) / SQ3;
     this.lit = new Set(); this.active = -1; this.solved = false; this.rip = -1; this.lastMove = -1;

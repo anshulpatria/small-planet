@@ -200,7 +200,12 @@ const JOIN_R = 2.5, JOIN_T = 1.4;
    fixed on-screen size. A glint is a Sprite (no ink, no shadow, no fog) and a child of the butterfly,
    so setVisible() and joining hide it with the butterfly. GLINT_PX: peak size in CSS px. */
 /* all collected: a spiral round Blip, then a scatter to new spots round the planet */
-const CEL = { SPIRAL_S: 3.4, ENTER_S: 0.6, OMEGA: 3.4, RISE: 4.6, SCATTER_MIN: 2.2, SCATTER_MAX: 3.8, STAGGER: 0.7 };
+/* R7 F1: a taller, wider vortex that accelerates to a climax (CLIMB_S), then a burst (BURST_S) and the scatter.
+   W0 -> W1: spin rate (rad/s) at the start and the climax; H: column height (m); R0 -> R1: radius at the bottom and the top. */
+const CEL = { SPIRAL_S: 4.75, CLIMB_S: 4.2, BURST_S: 0.55, ENTER_S: 0.7, W0: 2.2, W1: 9.5, H: 10.5, R0: 1.5, R1: 5.6, SCATTER_MIN: 2.2, SCATTER_MAX: 3.8, STAGGER: 0.7 };
+const CEL_CUES = [0.15, 1.3, 2.4, 3.3, 3.9];   // the swell: a rising ping ladder (k = 0..4), then the burst cue at CLIMB_S
+const CEL_TR = 7, CEL_SHARDS = 18;             // trail samples per butterfly; burst shards
+const CEL_CREAM = "#FFF3C8", CEL_INK = "#1E1F26";   // the trail and flash are exactly these two tones, flat
 const WILD_S = 0.78, SWARM_S = 0.62, GLINT_PX = 20;   // SWARM_S: a collected wild one shrinks back to the swarm's size
 let glintTex = null;
 function glintTexture() {
@@ -246,7 +251,7 @@ export class Butterflies {
   constructor(scene, opts) {
     const { planet, ok = () => true, ponds = [], trees = [], hard = [], wild = 20, saved = [] } = opts;
     this.items = []; this.lowCount = wild;
-    this.planet = planet; this.okFn = ok; this.armed = false; this.cel = null; this.onAll = null; this.celebrated = false;
+    this.scene = scene; this.rig = null; this.onCue = null; this.planet = planet; this.okFn = ok; this.armed = false; this.cel = null; this.onAll = null; this.celebrated = false;
     const cols = ["#FFC845", "#FF8FA3", "#B9A2F2", "#7ED6B2", "#FFB27A", "#FFFFFF"];
     const shape = new THREE.Shape(); shape.moveTo(0, 0); shape.bezierCurveTo(0.25, 0.3, 0.45, 0.12, 0.38, -0.05); shape.bezierCurveTo(0.42, -0.25, 0.15, -0.3, 0, -0.06);
     const geo = new THREE.ShapeGeometry(shape); geo.rotateX(-Math.PI / 2);
@@ -408,15 +413,17 @@ export class Butterflies {
     if (joined) this.armed = true;
     // the last wild one has joined and every butterfly is back in the swarm: start the celebration once
     if (this.armed && !this.celebrated && !this.cel && this.items.every(it => it.mode === "swarm")) this.startCelebration(body);
-    if (this.cel) { this.cel.t += dt; if (this.cel.t >= CEL.SPIRAL_S && !this.cel.scattering) this.startScatter(body); }
+    if (this.cel) { this.cel.t += dt; if (this.cel.t >= CEL.SPIRAL_S && !this.cel.scattering) this.startScatter(body); this.celFx(dt, centre, up); this.celBeat(dt); }
     return joined;
   }
   /* ---- celebration ---- */
   startCelebration(body) {
     this.celebrated = true;
     const n = this.items.length;
-    this.cel = { t: 0, scattering: false, body, n };
-    this.items.forEach((it, i) => { it.mode = "spiral"; it.cs = { th0: i * 2.39996, h0: i / n, from: it.g.position.clone() }; });
+    this.cel = { t: 0, scattering: false, body, n, cue: 0, burst: false, acc: 0, shards: [], flashAge: -1, beat: null, ctr: new THREE.Vector3() };
+    const rg = this.rig;   // the camera beat: remember the framing so it can return exactly
+    if (rg && rg.mode === "follow") this.cel.beat = { dist0: rg.distWanted, pitch0: rg.pitch, lastDist: rg.distWanted, done: false };
+    this.items.forEach((it, i) => { it.mode = "spiral"; it.cs = { th0: i * 2.39996, h0: i / n, from: it.g.position.clone(), tr: new Float32Array(CEL_TR * 3), trH: 0, trN: 0 }; });
     if (this.onAll) this.onAll(n);
   }
   /* new random spots: open ground (the same test the wild ones use) on the body Blip is on */
@@ -454,7 +461,7 @@ export class Butterflies {
       it.mode = "scatter";
       // from the moon to the planet (or back): a body-to-body flight, longer in time so it reads as a flight, not a streak
       const cross = from !== tb, far = cross ? it.g.position.distanceTo(to) : 0;
-      it.cs = { delay: Math.random() * CEL.STAGGER, dur: CEL.SCATTER_MIN + Math.random() * (CEL.SCATTER_MAX - CEL.SCATTER_MIN) + Math.min(5, far / 25), t: 0, home: sp.pos.clone(), spotUp: sp.d.clone(), body: tb };
+      it.cs = { tr: it.cs?.tr || new Float32Array(CEL_TR * 3), trH: it.cs?.trH || 0, trN: it.cs?.trN || 0, delay: Math.random() * CEL.STAGGER, dur: CEL.SCATTER_MIN + Math.random() * (CEL.SCATTER_MAX - CEL.SCATTER_MIN) + Math.min(5, far / 25), t: 0, home: sp.pos.clone(), spotUp: sp.d.clone(), body: tb };
       it.cs.arc = cross ? new CrossArc(it.g.position, from, to, tb, bodies, 4 + Math.random() * 3)
         : new GreatCircleArc(tb.centre, it.g.position.clone(), to, d => tb.surface(d), 3 + Math.random() * 3);
       it.body = tb;
@@ -463,9 +470,13 @@ export class Butterflies {
   celebrateStep(it, dt, t, centre, up, body, cam) {
     const cs = it.cs, cel = this.cel; it.prev.copy(it.g.position);
     if (it.mode === "spiral") {
-      const tau = cel.t, n = cel.n;
-      const th = cs.th0 + tau * CEL.OMEGA, h = 0.7 + CEL.RISE * ((cs.h0 + tau * 0.28) % 1);
-      const r = 1.5 + 0.32 * h;
+      const tau = cel.t, n = cel.n, Tc = CEL.CLIMB_S;
+      // spin rate eases from W0 up to W1 over the climb (angle = integral), then holds W1 through the burst
+      const tc = Math.min(tau, Tc), ph = CEL.W0 * tc + (CEL.W1 - CEL.W0) * tc * tc / (2 * Tc) + (tau > Tc ? CEL.W1 * (tau - Tc) : 0);
+      const th = cs.th0 + ph, p = tc / Tc, f = (0.18 + 0.82 * cs.h0) * Math.pow(p, 1.5);
+      let h = 0.7 + CEL.H * f, r = CEL.R0 + (CEL.R1 - CEL.R0) * Math.pow(f, 0.85);
+      if (tau > Tc) { const b = Math.min(1, (tau - Tc) / CEL.BURST_S), eb = 1 - (1 - b) * (1 - b); r += (10 + 8 * ((it.phase * 0.618) % 1)) * eb; h += (3 + 5 * ((it.phase * 0.37) % 1)) * eb; }
+      it.g.scale.setScalar(SWARM_S * (1 + 0.45 * p));
       tangents(up, it.t1, it.t2);
       const tgt = _d.copy(centre).addScaledVector(it.t1, Math.cos(th) * r).addScaledVector(it.t2, Math.sin(th) * r).addScaledVector(up, h);
       if (cam) { _c.copy(tgt).sub(cam); const dc = _c.length(); if (dc < 1.2) tgt.addScaledVector(_c.normalize(), 1.2 - dc); }
@@ -485,6 +496,81 @@ export class Butterflies {
     _a.copy(it.g.position).sub(it.prev); _a.addScaledVector(_e, -_a.dot(_e));
     if (_a.lengthSq() > 1e-8) { _a.normalize().add(it.g.position); it.g.lookAt(_a); }
     const f = Math.sin(t * 28 + it.phase) * 1.1; it.l.rotation.z = f; it.r.rotation.z = -f;
+  }
+  /* ---- R7 F1: the celebration's trail, burst and cues (cel style: flat cream stars on a flat ink twin, no gradients, no bloom) ---- */
+  buildFx() {
+    const star = new THREE.Shape(); for (let k = 0; k < 8; k++) { const a = k * Math.PI / 4 - Math.PI / 2, rr = k % 2 ? 0.34 : 1; if (k) star.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); else star.moveTo(Math.cos(a) * rr, Math.sin(a) * rr); } star.closePath();   // moveTo first: a bare lineTo starts from (0,0) and cuts a wedge out of every star
+    const geo = new THREE.ShapeGeometry(star), N = this.items.length * CEL_TR + CEL_SHARDS + 2;
+    const mk = (col, ro) => { const m = new THREE.InstancedMesh(geo, new THREE.MeshBasicMaterial({ color: col, toneMapped: false, fog: false, depthWrite: false, depthTest: false, side: THREE.DoubleSide }), N); m.frustumCulled = false; m.renderOrder = ro; m.count = N; this.scene.add(m); return m; };
+    return { ink: mk(CEL_INK, 3), fill: mk(CEL_CREAM, 4), N, m4: new THREE.Matrix4(), q: new THREE.Quaternion(), qz: new THREE.Quaternion(), pos: new THREE.Vector3(), sc: new THREE.Vector3(), zero: new THREE.Matrix4().makeScale(0, 0, 0) };
+  }
+  celFx(dt, centre, up) {
+    const cel = this.cel; if (!cel || !this.camera) { if (this.fx && this.fx.ink.visible) this.fx.ink.visible = this.fx.fill.visible = false; return; }   // no celebration: never leave stale stars up
+    const F = this.fx || (this.fx = this.buildFx()), tau = cel.t;
+    // sound cues: a rising ping ladder through the climb, then the burst
+    if (this.onCue) {
+      while (cel.cue < CEL_CUES.length && tau >= CEL_CUES[cel.cue]) this.onCue("ping", cel.cue++);
+      if (!cel.burst && tau >= CEL.CLIMB_S) this.onCue("burst", 0);
+    }
+    cel.ctr.copy(centre).addScaledVector(up, 0.7 + CEL.H * 0.55);
+    if (!cel.burst && tau >= CEL.CLIMB_S) {
+      cel.burst = true; cel.flashAge = 0;
+      for (let k = 0; k < CEL_SHARDS; k++) {
+        const a = k * 2.39996, e = 0.15 + 0.7 * ((k * 0.381) % 1), v = new THREE.Vector3();
+        tangents(up, _a, _b);
+        v.copy(_a).multiplyScalar(Math.cos(a)).addScaledVector(_b, Math.sin(a)).multiplyScalar(Math.sqrt(1 - e * e)).addScaledVector(up, e).multiplyScalar(9 + 8 * ((k * 0.618) % 1));
+        cel.shards.push({ p: cel.ctr.clone(), v, age: 0, life: 0.55 + 0.35 * ((k * 0.73) % 1), spin: a });
+      }
+    }
+    const live = tau < CEL.SPIRAL_S + 0.55;
+    if (!live) { if (F.ink.visible) F.ink.visible = F.fill.visible = false; return; }
+    // trail samples, 35/s, while a butterfly is circling (or has just left)
+    cel.acc += dt; const step = cel.acc >= 0.028; if (step) cel.acc = 0;
+    const p = Math.min(1, tau / CEL.CLIMB_S), TS = 0.16 + 0.2 * p, on = tau > 0.5;
+    let i = 0;
+    const put = (pos, scale, spin) => {
+      F.q.copy(this.camera.quaternion); F.qz.setFromAxisAngle(_e.set(0, 0, 1), spin); F.q.multiply(F.qz);
+      F.sc.setScalar(scale * 1.42); F.m4.compose(pos, F.q, F.sc); F.ink.setMatrixAt(i, F.m4);
+      F.sc.setScalar(scale); F.m4.compose(pos, F.q, F.sc); F.fill.setMatrixAt(i, F.m4); i++;
+    };
+    const none = () => { F.ink.setMatrixAt(i, F.zero); F.fill.setMatrixAt(i, F.zero); i++; };
+    for (const it of this.items) {
+      const cs = it.cs, vis = on && (it.mode === "spiral" || (it.mode === "scatter" && cs.t < 0.4));
+      if (step && vis) { cs.trH = (cs.trH + 1) % CEL_TR; cs.tr[cs.trH * 3] = it.g.position.x; cs.tr[cs.trH * 3 + 1] = it.g.position.y; cs.tr[cs.trH * 3 + 2] = it.g.position.z; cs.trN = Math.min(CEL_TR, cs.trN + 1); }
+      if (!vis && cs.trN) { if (step) cs.trN = Math.max(0, cs.trN - 2); }
+      for (let j = 0; j < CEL_TR; j++) {
+        if (j >= cs.trN) { none(); continue; }
+        const k = (cs.trH - j + CEL_TR) % CEL_TR;
+        put(F.pos.set(cs.tr[k * 3], cs.tr[k * 3 + 1], cs.tr[k * 3 + 2]), TS * (1 - j / CEL_TR), tau * 3 + j);
+      }
+    }
+    // burst shards (flat stars thrown outward, slowing) and the flash: two crossed stars that pop and vanish
+    for (let k = 0; k < CEL_SHARDS; k++) {
+      const sh = cel.shards[k]; if (!sh || sh.age >= sh.life) { none(); continue; }
+      sh.age += dt; sh.p.addScaledVector(sh.v, dt); sh.v.multiplyScalar(Math.exp(-1.6 * dt));
+      put(sh.p, 0.9 * Math.max(0, 1 - sh.age / sh.life), sh.spin + sh.age * 5);
+    }
+    for (let k = 0; k < 2; k++) {
+      if (cel.flashAge >= 0 && cel.flashAge < 0.32) { const e = 1 - Math.pow(1 - cel.flashAge / 0.32, 3); put(cel.ctr, 4 * e, k * Math.PI / 4); }
+      else none();
+    }
+    if (cel.flashAge >= 0) cel.flashAge += dt;
+    F.ink.visible = F.fill.visible = true; F.ink.instanceMatrix.needsUpdate = F.fill.instanceMatrix.needsUpdate = true;
+  }
+  /* the camera beat: pull back and tilt up to take in the tall vortex, hold through the climax, then ease home.
+     It writes only rig.distWanted and rig.pitch (the same levers as the lookout and cannon framings); a drag, a zoom or
+     a scripted focus shot hands the lens back at once. */
+  celBeat(dt) {
+    const cel = this.cel, B = cel && cel.beat, rg = this.rig; if (!B || B.done || !rg) return;
+    const abort = rg.mode !== "follow" || Math.abs(rg.distWanted - B.lastDist) > 1e-6;   // someone else moved the zoom or took the lens
+    if (abort) { B.done = true; return; }
+    const tau = cel.t, UP0 = 0.2, UP1 = 1.5, DN0 = CEL.SPIRAL_S + 0.2, DN1 = DN0 + 1.4;
+    const sm = x => { x = Math.min(1, Math.max(0, x)); return x * x * (3 - 2 * x); };
+    const k = sm((tau - UP0) / (UP1 - UP0)) * (1 - sm((tau - DN0) / (DN1 - DN0)));
+    const dist = Math.min(34, B.dist0 * 1.55), pitch = Math.max(0.2, B.pitch0 - 0.24);
+    rg.distWanted = B.dist0 + (dist - B.dist0) * k; B.lastDist = rg.distWanted;
+    if (!rg.freed) rg.pitch = B.pitch0 + (pitch - B.pitch0) * k;
+    if (tau >= DN1) { rg.distWanted = B.dist0; rg.pitch = B.pitch0; B.done = true; }
   }
   /* after the scatter every butterfly is wild again at its new spot: collectable, with its glint, never "following" */
   release(it, cs) {
