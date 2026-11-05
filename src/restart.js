@@ -20,12 +20,7 @@ export function clearProgress(storage) {
 
 const ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><path d="M19 12a7 7 0 1 1-2.05-4.95"/><path d="M17 3.5v4h-4"/></svg>';   // drawn like the dock glyphs (projects.js GLYPHS): 24 box, plain strokes, the coin's own stroke rule
 const CSS = `
-.r7-restart-dock.tok{margin-left:6px;--c:var(--cream);--lo:var(--cream-lo);background:var(--c);box-shadow:inset 0 -6px 0 var(--lo),0 3px 0 var(--cel-ink)}   /* R7: a real dock coin (.tok: same size, ring, stroke weight and hover), cream like a found coin, last on the row
-.r7-restart-dock.tok svg{margin-top:-2px}
-@media (hover:hover){.r7-restart-dock:hover{background:#fff}}
-.r7-restart-dock:active{background:var(--cream-lo)}
-.r7-restart-dock:focus{outline:none}
-html.kbd .r7-restart-dock:focus-visible{outline:3px solid var(--cel-ink);outline-offset:2px}
+.r7-restart-dock.tok{--c:var(--cel-grey,#E6E7E2);--lo:var(--cel-grey-lo,#BABCB3)}   /* R7: exactly a found project coin (.tok.found: ring, shadow, gloss, hover, focus); only the colour pair and the glyph differ */
 .r7-restart-item svg{fill:none;stroke:var(--cel-ink);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .r7-restart-modal .finale-card{width:min(420px,100%)}
 `;
@@ -106,7 +101,7 @@ export function installRestart() {
   const dock = document.getElementById("dock");
   if (dock && !dock.querySelector(".r7-restart-dock")) {
     const b = document.createElement("button");
-    b.type = "button"; b.className = "tok r7-restart-dock"; b.title = "Restart journey";
+    b.type = "button"; b.className = "tok found r7-restart-dock"; b.title = "Restart journey";
     b.setAttribute("aria-label", "Restart journey: start over from the beginning");
     b.setAttribute("aria-haspopup", "dialog"); b.setAttribute("aria-controls", "r7RestartModal");
     b.innerHTML = ICON;
