@@ -20,7 +20,7 @@ export function clearProgress(storage) {
 
 const ICON = '<svg viewBox="0 0 24 24" aria-hidden="true" fill="none"><path d="M19 12a7 7 0 1 1-2.05-4.95"/><path d="M17 3.5v4h-4"/></svg>';   // drawn like the dock glyphs (projects.js GLYPHS): 24 box, plain strokes, the coin's own stroke rule
 const CSS = `
-.r7-restart-dock.tok{margin-left:2px;--c:var(--cream);--lo:var(--cream-lo);background:var(--c);box-shadow:inset 0 -6px 0 var(--lo),0 3px 0 var(--cel-ink)}   /* R7: a real dock coin (.tok: same size, ring, stroke weight and hover), cream like a found coin, last on the row
+.r7-restart-dock.tok{margin-left:6px;--c:var(--cream);--lo:var(--cream-lo);background:var(--c);box-shadow:inset 0 -6px 0 var(--lo),0 3px 0 var(--cel-ink)}   /* R7: a real dock coin (.tok: same size, ring, stroke weight and hover), cream like a found coin, last on the row
 .r7-restart-dock.tok svg{margin-top:-2px}
 @media (hover:hover){.r7-restart-dock:hover{background:#fff}}
 .r7-restart-dock:active{background:var(--cream-lo)}
@@ -111,7 +111,10 @@ export function installRestart() {
     b.setAttribute("aria-haspopup", "dialog"); b.setAttribute("aria-controls", "r7RestartModal");
     b.innerHTML = ICON;
     b.addEventListener("click", () => open(b));
-    dock.appendChild(b);
+    // inside the coin row (an <li> after the 10 project coins), so it stays on that line in both dock layouts (the flex bar, and the
+    // finished 10/10 grid with "Say hello"); ui.js builds the row once in setup, before this runs
+    const row = document.getElementById("glyphs"), li = document.createElement("li"); li.className = "r7-restart-li"; li.appendChild(b);
+    (row || dock).appendChild(row ? li : b);
   }
   return { open, close, isOpen };
 }
