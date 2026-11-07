@@ -237,6 +237,12 @@ export function installRewards({ ui, sfx, scene, camera, renderer, butterflies, 
 .r7-reward-blip{width:min(240px,100%)}
 .r7-reward-one{grid-template-columns:minmax(200px,340px)}
 .r7-reward-locked .r7-reward-thumb{border-style:dashed;box-shadow:none;background:transparent;color:var(--ink-soft,#6E706C);font:600 14px/1.4 var(--f-body);text-align:center;padding:14px}
+.r7-reward-locked .r7-reward-thumb.r7-fit{padding:0;background:var(--paper,#E4E5E0)}
+.r7-reward-thumb img.r7-reward-blur{filter:blur(10px) saturate(.9);transform:scale(1.15);opacity:.9}
+.r7-reward-lock{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:8px;padding:10px;text-align:center;background:rgba(237,238,234,.28)}
+.r7-reward-lock b{display:inline-flex;align-items:center;gap:6px;padding:5px 12px 5px 10px;border:2px solid var(--ink);border-radius:999px;background:var(--paper-2,#EDEEEA);color:var(--ink);font:700 13px/1 var(--f-body)}
+.r7-reward-lock b svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.r7-reward-lock>span{max-width:24ch;padding:5px 9px;border-radius:9px;background:rgba(237,238,234,.88);color:var(--ink);font:600 12.5px/1.35 var(--f-body)}
 .r7-reward-name{margin:0;font:700 15px/1.2 var(--f-body)}
 .r7-reward-note{margin:0;font-size:12.5px;line-height:1.4;color:var(--ink-soft,#6E706C)}
 .r7-reward-row{display:flex;gap:8px;flex-wrap:wrap}
@@ -261,12 +267,15 @@ export function installRewards({ ui, sfx, scene, camera, renderer, butterflies, 
   function renderPanel() {
     const fa = document.activeElement, fk = fa && panel.contains(fa) ? (fa.dataset.dl ? `[data-dl="${fa.dataset.dl}"]` : fa.dataset.retake ? `[data-retake="${fa.dataset.retake}"]` : fa.hasAttribute("data-close") ? "[data-close]" : null) : null;
     const wp = has("wallpapers"), pr = has("print");
+    // a locked reward: its picture, blurred, under a lock chip and the way to earn it
+    const lockOver = (src, how) => `<img class="r7-reward-blur" alt="" aria-hidden="true" src="${src}"><span class="r7-reward-lock"><b><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Locked</b><span>${esc(how)}</span></span>`;
     const wcard = k => {
       const W = WALLS[k], s = shots[k];
       const ok = s && !s.missing, r = ok && s.w && s.h ? s.w / s.h : WALLS[k].r;
       return wp ? `<div class="r7-reward-item r7-wall-${k}" style="flex:${r.toFixed(4)} 1 6px"><div class="r7-reward-thumb${ok ? " r7-fit" : ""}"${ok ? ` style="aspect-ratio:${s.w || r} / ${s.h || 1}"` : ""}>${ok ? `<img alt="${W.label} wallpaper preview" src="${s.url}">` : `<span class="r7-reward-note">${s ? "Being painted. Check back soon." : "Loading…"}</span>`}</div>
         <p class="r7-reward-name">${W.label}${ok && s.dim ? ` · ${s.dim}` : ""}</p><div class="r7-reward-row">
         <button type="button" class="btn-cel r7-reward-btn" data-dl="wall-${k}"${ok ? "" : " disabled"}>Download</button></div></div>`
+        : ok ? `<div class="r7-reward-item r7-reward-locked r7-wall-${k}" style="flex:${r.toFixed(4)} 1 6px"><div class="r7-reward-thumb r7-fit" style="aspect-ratio:${s.w || r} / ${s.h || 1}">${lockOver(s.url, lockTxt.wallpapers)}</div><p class="r7-reward-name">${W.label}</p></div>`
         : `<div class="r7-reward-item r7-reward-locked" style="flex:1 1 0"><div class="r7-reward-thumb">Locked<br>${esc(lockTxt.wallpapers)}</div><p class="r7-reward-name">${W.label}</p></div>`;
     };
     panel.innerHTML = `<div class="r7-reward-card"><button type="button" class="panel-close" data-close aria-label="Close rewards"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
@@ -274,7 +283,7 @@ export function installRewards({ ui, sfx, scene, camera, renderer, butterflies, 
       <h3>Wallpapers</h3><div class="r7-reward-walls">${wcard("phone")}${wcard("desktop")}</div>
       <h3>Print Blip</h3><div class="r7-reward-grid r7-reward-one">${pr
         ? `<div class="r7-reward-item"><div class="r7-reward-thumb r7-fit r7-reward-blip" style="aspect-ratio:1 / 1"><img alt="Preview of the printable Blip, waving" src="${STL_PREVIEW}"></div><p class="r7-reward-name">Blip, 70 mm tall, waving</p><p class="r7-reward-note">The in-game Blip as one solid piece that stands on his own feet. Print him upright with tree supports (45°) and a brim: PLA, 0.2 mm layers, 3 walls, 15% infill.</p><div class="r7-reward-row"><button type="button" class="btn-cel r7-reward-btn" data-dl="stl">Download STL</button><button type="button" class="btn-cel btn-cel-grey r7-reward-btn" data-dl="3mf">3MF</button></div></div>`
-        : `<div class="r7-reward-item r7-reward-locked"><div class="r7-reward-thumb">Locked<br>${esc(lockTxt.print)}</div></div>`}</div>
+        : `<div class="r7-reward-item r7-reward-locked"><div class="r7-reward-thumb r7-fit r7-reward-blip" style="aspect-ratio:1 / 1">${lockOver(STL_PREVIEW, lockTxt.print)}</div><p class="r7-reward-name">Blip, 70 mm tall, waving</p></div>`}</div>
       <h3>Profile badges</h3><p class="r7-reward-note" style="margin:-4px 0 12px">640 × 640. Made for a round profile picture: the picture stays inside the circle.</p>
       <div class="r7-reward-badges">${MILESTONES.map(m => has("badge-" + m.id)
         ? `<div class="r7-reward-badge"><button type="button" data-dl="badge-${m.id}" aria-label="Download the ${esc(m.title)} badge"><canvas width="${BADGE_PX}" height="${BADGE_PX}" data-badge="${m.id}"></canvas></button><p class="r7-reward-name">${esc(m.title)}</p><p class="r7-reward-note">Tap to save</p></div>`
@@ -285,7 +294,7 @@ export function installRewards({ ui, sfx, scene, camera, renderer, butterflies, 
   }
   let busy = false;
   async function ensureShots() {
-    if (!has("wallpapers") || busy) return; busy = true;
+    if (busy) return; busy = true;
     try {
       for (const k of Object.keys(WALLS)) { if (!shots[k]) { await takeShot(k); if (!panel.hidden) renderPanel(); } }
     } finally { busy = false; }
