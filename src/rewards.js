@@ -2,18 +2,16 @@ import { fontsReady } from "./signs.js";
 import { PROJECTS } from "./projects.js";
 
 /* R7 T8: takeaways.
-   - Wallpapers (phone 1170x2532, desktop 2560x1440): unlocked by finding every butterfly. A hero shot of Blip, the butterflies and the
-     world, rendered from the LIVE scene with its own camera in one task (the booth's pipeline: resize, render, copy, restore), then the
-     house wordmark and a line of copy are drawn on top.
-   - Printable Blip: unlocked by everything (all projects, all butterflies, all five stars). A static watertight STL (blender/blip_print.py).
+   - Wallpapers (phone + desktop): unlocked by finding every butterfly. The user's own art, served as static files (takeShot below).
+   - Printable Blip: unlocked by everything (all projects, all butterflies, all five stars). A static watertight 70 mm STL + 3MF of the in-game Blip in his wave pose, standing on his feet (blender/blip_print.py).
    - WhatsApp DP badges (640x640, circle-safe, subject inside 80% of the circle): one per milestone, drawn on a canvas in the house cel look
      (two tones per shape, ink outline).
    Runtime DOM only: nothing here edits ui.js, index.html or styles.css. Classes are .r7-reward-*; the panel is an .r7-modal. */
 
 const INK = "#1E1F26";
 const KEY = "archipelago.rewards.v1";          // cleared by the restart (prefix archipelago.)
-const STL_URL = "assets/rewards/blip.stl", STL_PREVIEW = "assets/rewards/blip-preview.png";
-const WALLS = { phone: { w: 1170, h: 2532, label: "Phone", note: "1170 × 2532" }, desktop: { w: 2560, h: 1440, label: "Desktop", note: "2560 × 1440" } };
+const STL_URL = "assets/rewards/blip.stl", MF_URL = "assets/rewards/blip.3mf", STL_PREVIEW = "assets/rewards/blip-preview.png";
+const WALLS = { phone: { label: "Phone", r: 9 / 16 }, desktop: { label: "Desktop", r: 16 / 9 } };
 const BADGE_PX = 640, SAFE_R = BADGE_PX / 2 * 0.8;   // the subject sits inside 80% of the circle: radius 256
 
 /* ---- the milestones. Each: one badge. `test` reads live state. */
@@ -201,20 +199,22 @@ export function installRewards({ ui, sfx, scene, camera, renderer, butterflies, 
      web/assets/rewards/wallpaper-phone.(png|jpg) and wallpaper-desktop.(png|jpg). */
   const WALL_DIR = new URL("../assets/rewards/", import.meta.url);
   async function takeShot(kind) {
-    for (const ext of ["png", "jpg", "jpeg", "webp"]) {
+    for (const ext of ["jpg", "png", "jpeg", "webp"]) {
       try {
         const res = await fetch(new URL(`wallpaper-${kind}.${ext}`, WALL_DIR), { cache: "no-store" });
         if (!res.ok) continue;
         const blob = await res.blob();
         if (shots[kind]) URL.revokeObjectURL(shots[kind].url);
-        shots[kind] = { blob, ext, url: URL.createObjectURL(blob) }; return shots[kind];
+        let dim = "", w = 0, h = 0;   // the label and the frame follow the file's real size, whatever the user drops in
+        try { const bm = await createImageBitmap(blob); w = bm.width; h = bm.height; dim = `${w} × ${h}`; bm.close(); } catch {}
+        shots[kind] = { blob, ext, dim, w, h, url: URL.createObjectURL(blob) }; return shots[kind];
       } catch {}
     }
     shots[kind] = { missing: true }; return shots[kind];
   }
   const badgeBlobs = {};
   async function badgeBlob(id) { return badgeBlobs[id] || (badgeBlobs[id] = await toBlob(await renderBadge(id))); }
-  async function downloadStl() { const res = await fetch(STL_URL); save(await res.blob(), "small-planet-blip-60mm.stl"); }
+  async function downloadStl(mf) { const res = await fetch(mf ? MF_URL : STL_URL); save(await res.blob(), mf ? "small-planet-blip-70mm.3mf" : "small-planet-blip-70mm.stl"); }
 
   /* ---------------------------------------------------------------- the panel (.r7-modal) */
   const css = document.createElement("style"); css.id = "r7-reward-style";
@@ -229,6 +229,12 @@ export function installRewards({ ui, sfx, scene, camera, renderer, butterflies, 
 .r7-reward-thumb{width:100%;height:210px;display:grid;place-items:center;border:3px solid var(--ink);border-radius:14px;background:#FFFDF6;box-shadow:3px 4px 0 var(--ink);overflow:hidden}
 .r7-reward-thumb{position:relative}
 .r7-reward-thumb img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block}
+.r7-reward-thumb.r7-fit{height:auto;background:none;box-sizing:content-box;width:auto;align-self:stretch}
+.r7-reward-thumb.r7-fit.r7-reward-blip{align-self:flex-start;width:min(234px,calc(100% - 6px))}
+.r7-reward-thumb.r7-fit img{object-fit:cover}
+.r7-reward-walls{display:flex;gap:16px;align-items:flex-start}
+.r7-reward-walls>.r7-reward-item{min-width:0}
+.r7-reward-blip{width:min(240px,100%)}
 .r7-reward-one{grid-template-columns:minmax(200px,340px)}
 .r7-reward-locked .r7-reward-thumb{border-style:dashed;box-shadow:none;background:transparent;color:var(--ink-soft,#6E706C);font:600 14px/1.4 var(--f-body);text-align:center;padding:14px}
 .r7-reward-name{margin:0;font:700 15px/1.2 var(--f-body)}
@@ -242,7 +248,7 @@ export function installRewards({ ui, sfx, scene, camera, renderer, butterflies, 
 .r7-reward-badge canvas,.r7-reward-ghost{display:block;width:104px;height:104px;border-radius:50%;border:3px solid var(--ink);box-shadow:3px 4px 0 var(--ink)}
 .r7-reward-ghost{border-style:dashed;box-shadow:none;display:grid;place-items:center;font:700 22px var(--f-display);color:var(--ink-soft,#6E706C)}
 .r7-reward-badge .r7-reward-note{max-width:128px}
-@media (max-width:600px){.r7-reward-card{padding:20px 18px 24px}.r7-reward-card h2{font-size:28px}.r7-reward-thumb{height:170px}}`;
+@media (max-width:600px){.r7-reward-card{padding:20px 18px 24px}.r7-reward-card h2{font-size:28px}.r7-reward-thumb{height:170px}.r7-reward-thumb.r7-fit{height:auto}.r7-reward-walls{flex-direction:column;gap:22px}.r7-reward-walls>.r7-reward-item{flex:none!important;width:100%}.r7-wall-phone .r7-reward-thumb.r7-fit{align-self:flex-start;width:min(170px,calc(100% - 6px))}}`;
   document.head.appendChild(css);
 
   const panel = document.createElement("div"); panel.className = "r7-modal r7-reward-modal"; panel.hidden = true;
@@ -257,17 +263,17 @@ export function installRewards({ ui, sfx, scene, camera, renderer, butterflies, 
     const wp = has("wallpapers"), pr = has("print");
     const wcard = k => {
       const W = WALLS[k], s = shots[k];
-      const ok = s && !s.missing;
-      return wp ? `<div class="r7-reward-item"><div class="r7-reward-thumb">${ok ? `<img alt="${W.label} wallpaper preview" src="${s.url}">` : `<span class="r7-reward-note">${s ? "Being painted. Check back soon." : "Loading…"}</span>`}</div>
-        <p class="r7-reward-name">${W.label} · ${W.note}</p><div class="r7-reward-row">
+      const ok = s && !s.missing, r = ok && s.w && s.h ? s.w / s.h : WALLS[k].r;
+      return wp ? `<div class="r7-reward-item r7-wall-${k}" style="flex:${r.toFixed(4)} 1 6px"><div class="r7-reward-thumb${ok ? " r7-fit" : ""}"${ok ? ` style="aspect-ratio:${s.w || r} / ${s.h || 1}"` : ""}>${ok ? `<img alt="${W.label} wallpaper preview" src="${s.url}">` : `<span class="r7-reward-note">${s ? "Being painted. Check back soon." : "Loading…"}</span>`}</div>
+        <p class="r7-reward-name">${W.label}${ok && s.dim ? ` · ${s.dim}` : ""}</p><div class="r7-reward-row">
         <button type="button" class="btn-cel r7-reward-btn" data-dl="wall-${k}"${ok ? "" : " disabled"}>Download</button></div></div>`
-        : `<div class="r7-reward-item r7-reward-locked"><div class="r7-reward-thumb">Locked<br>${esc(lockTxt.wallpapers)}</div><p class="r7-reward-name">${W.label} · ${W.note}</p></div>`;
+        : `<div class="r7-reward-item r7-reward-locked" style="flex:1 1 0"><div class="r7-reward-thumb">Locked<br>${esc(lockTxt.wallpapers)}</div><p class="r7-reward-name">${W.label}</p></div>`;
     };
     panel.innerHTML = `<div class="r7-reward-card"><button type="button" class="panel-close" data-close aria-label="Close rewards"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       <h2 id="r7RewardTitle">Takeaways</h2><p class="r7-reward-sub">Things you can keep.</p>
-      <h3>Wallpapers</h3><div class="r7-reward-grid">${wcard("phone")}${wcard("desktop")}</div>
+      <h3>Wallpapers</h3><div class="r7-reward-walls">${wcard("phone")}${wcard("desktop")}</div>
       <h3>Print Blip</h3><div class="r7-reward-grid r7-reward-one">${pr
-        ? `<div class="r7-reward-item"><div class="r7-reward-thumb"><img alt="Preview of the printable Blip on his base" src="${STL_PREVIEW}"></div><p class="r7-reward-name">Blip, 60 mm tall</p><p class="r7-reward-note">One watertight piece on a flat base, engraved “Small Planet”. STL, 0.8 MB. Print it upright, no supports under the base.</p><button type="button" class="btn-cel r7-reward-btn" data-dl="stl">Download STL</button></div>`
+        ? `<div class="r7-reward-item"><div class="r7-reward-thumb r7-fit r7-reward-blip" style="aspect-ratio:1 / 1"><img alt="Preview of the printable Blip, waving" src="${STL_PREVIEW}"></div><p class="r7-reward-name">Blip, 70 mm tall, waving</p><p class="r7-reward-note">The in-game Blip as one solid piece that stands on his own feet. Print him upright with tree supports (45°) and a brim: PLA, 0.2 mm layers, 3 walls, 15% infill.</p><div class="r7-reward-row"><button type="button" class="btn-cel r7-reward-btn" data-dl="stl">Download STL</button><button type="button" class="btn-cel btn-cel-grey r7-reward-btn" data-dl="3mf">3MF</button></div></div>`
         : `<div class="r7-reward-item r7-reward-locked"><div class="r7-reward-thumb">Locked<br>${esc(lockTxt.print)}</div></div>`}</div>
       <h3>Profile badges</h3><p class="r7-reward-note" style="margin:-4px 0 12px">640 × 640. Made for a round profile picture: the picture stays inside the circle.</p>
       <div class="r7-reward-badges">${MILESTONES.map(m => has("badge-" + m.id)
@@ -281,7 +287,7 @@ export function installRewards({ ui, sfx, scene, camera, renderer, butterflies, 
   async function ensureShots() {
     if (!has("wallpapers") || busy) return; busy = true;
     try {
-      for (const k of Object.keys(WALLS)) { if (!shots[k]) { await new Promise(r => requestAnimationFrame(() => setTimeout(r, 30))); await takeShot(k); if (!panel.hidden) renderPanel(); } }
+      for (const k of Object.keys(WALLS)) { if (!shots[k]) { await takeShot(k); if (!panel.hidden) renderPanel(); } }
     } finally { busy = false; }
   }
   function open() {
@@ -295,7 +301,7 @@ export function installRewards({ ui, sfx, scene, camera, renderer, butterflies, 
     const dl = e.target.closest("[data-dl]"), rt = e.target.closest("[data-retake]");
     if (rt) { const k = rt.dataset.retake; rt.disabled = true; delete shots[k]; renderPanel(); await new Promise(r => requestAnimationFrame(() => setTimeout(r, 30))); await takeShot(k); if (!panel.hidden) renderPanel(); return; }
     if (!dl) return; const id = dl.dataset.dl;
-    if (id === "stl") return downloadStl();
+    if (id === "stl" || id === "3mf") return downloadStl(id === "3mf");
     if (id.startsWith("wall-")) { const k = id.slice(5); return shots[k] && shots[k].blob && save(shots[k].blob, `small-planet-wallpaper-${k}.${shots[k].ext}`); }
     if (id.startsWith("badge-")) return save(await badgeBlob(id.slice(6)), `small-planet-badge-${id.slice(6)}-640.png`);
   });
