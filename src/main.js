@@ -2254,7 +2254,7 @@ async function travel(id) {
 }
 const wait = ms => new Promise(r => setTimeout(r, ms));
 function setMode(mode) {
-  if (mode === "list") { if (focused) exitFocus(); ui.closeMap(); }
+  if (mode === "list") { if (focused) exitFocus(); ui.closeMap(); $("intro").classList.add("gone"); }   // "Skip the walking": the intro (z 40) sits over the list (z 25), so it has to go too
   ui.setMode(mode);
   if (mode === "world" && state === "intro") enter();
 }
