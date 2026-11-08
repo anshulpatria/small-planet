@@ -1,0 +1,32 @@
+# Small Planet
+
+> A 3D portfolio you walk around instead of scroll. Anshul Patria's games, tools and creative-coding experiments live on a tiny cel-shaded planet built with Three.js and WebGL. It runs in the browser on desktop and mobile; no install.
+
+Small Planet is the interactive portfolio of Anshul Patria, a designer and creative developer. Visitors land on a slowly turning planet they can drag to spin, then "Enter the planet" to walk a small character (Blip) between ten projects. "Skip the walking" opens a plain project list instead.
+
+What makes it distinctive:
+- Cel shading: every surface is drawn in exactly two tones with a constant-width ink outline, so it reads like a picture book.
+- Characters: you play as Blip, and five original creatures (Zip the yak, Tall Sid, Lumen, Chomp, Gulp) each have an animated trick, a babble voice and something to say.
+- Map: the planet is mapped as a two-faced coin, one hemisphere per side, with live miniature pieces; flip it and tap any piece to teleport.
+- Play: butterflies to collect, badges, three hidden secrets, wallpapers and a printable STL as rewards.
+
+## Projects on the planet
+
+- [Pin Art 3D](https://anshulpatria.github.io/3D-pin-art/): toy. A pinscreen driven by depth; push the pins by hand or imprint a photograph, then relight and orbit.
+- [Gravity Pong](https://anshulpatria.github.io/gravitypong/): game. Pong with gravity wells, power shots and magnets, for one or two players.
+- [Brand Studio](https://anshulpatria.github.io/brandstudio/): tool. Builds identity systems from a metaball grid, exporting stills and video.
+- [Engraver](https://anshulpatria.github.io/linevisualiser/): tool. Redraws any image as a grid of strokes; export SVG, PNG or WebM.
+- [Field](https://field-8yc.pages.dev/): catalogue of twenty generative cursor effects, each with its code.
+- [GenAI After Hours](https://anshulpatria.github.io/genaiafterhourspub/): deck from a session on building microsites with AI tools.
+- [Orchestrator](https://youtu.be/oySlLRl5EBI): a generated film made in under sixteen hours of prompting.
+- [The bracket does it again](https://youtu.be/M1nIsHUE6dg): short film on finding the story inside an ordinary slide deck.
+- [AI Momentum to Value](https://sea-ai-maturity.bcg.com/): interactive hexagon report on Southeast Asia's path from AI momentum to value.
+- [GitHub Portfolio](https://anshulpatria.github.io/): the wider collection of tools, toys, games and workshop decks.
+
+## Built with
+
+Three.js r169, vanilla ES modules, custom toon shaders, Web Audio. Static site on GitHub Pages.
+
+## Author
+
+Anshul Patria: https://anshulpatria.github.io/
