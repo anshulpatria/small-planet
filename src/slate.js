@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { outline } from "./toon.js?v=20261108-2229";
-import { fontsReady } from "./signs.js?v=20261108-2229";
+import { outline } from "./toon.js?v=20261108-2312";
+import { fontsReady } from "./signs.js?v=20261108-2312";
 
 /* Creature dialogue as an in-world slate.
    A thin cream cuboid (toon shaded, ink outlined) that floats above the speaker, yaw-billboarded to

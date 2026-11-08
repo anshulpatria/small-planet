@@ -1,4 +1,4 @@
-import { PROJECTS, byId, GLYPHS } from "./projects.js?v=20261108-2229";
+import { PROJECTS, byId, GLYPHS } from "./projects.js?v=20261108-2312";
 
 /* Everything in HTML: progress + glyphs, prompt, toast, hint, panel, map, list.
    Discovery state persists in localStorage (wrapped: private windows may refuse it). */

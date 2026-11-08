@@ -1,6 +1,6 @@
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { DRACOLoader } from "three/addons/loaders/DRACOLoader.js";
-import { ISLANDS } from "./projects.js?v=20261108-2229";
+import { ISLANDS } from "./projects.js?v=20261108-2312";
 
 /* Loads the GLBs (shared assets and the planet first, then the moon) and collects the
    named nodes the runtime is built on (the anchor prefixes in ingest()) into world.anchors. */
@@ -18,7 +18,7 @@ export class World {
 
   loadCharacter() {
     const tryLoad = f => new Promise(res => this.loader.load(f, res, undefined, () => res(null)));
-    return tryLoad("assets/models/toy.glb").then(g => g || tryLoad("assets/models/character.glb"));
+    return tryLoad("assets/models/toy.glb");
   }
 
   async loadEager(progress) {

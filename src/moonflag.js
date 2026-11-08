@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { OPTIONS, load } from "./customise.js?v=20261108-2229";
-import { toonify, outline } from "./toon.js?v=20261108-2229";
+import { OPTIONS, load } from "./customise.js?v=20261108-2312";
+import { toonify, outline } from "./toon.js?v=20261108-2312";
 
 /* Blip's flag on the moon. The moon's own blue MOON_flag (and its ink hull) is hidden at load; its spot becomes
    "Plant your flag". Pressing E walks Blip up to it, and a small flag in Blip's own body colour (read from the photo

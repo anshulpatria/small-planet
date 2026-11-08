@@ -1,19 +1,19 @@
 import * as THREE from "three";
-import { PROJECTS, byId, GAMES } from "./projects.js?v=20261108-2229";
-import { installTracking } from "./track.js?v=20261108-2229";
+import { PROJECTS, byId, GAMES } from "./projects.js?v=20261108-2312";
+import { installTracking } from "./track.js?v=20261108-2312";
 installTracking();   // anonymous visitor stats; off until UMAMI_ID is set in track.js
-import { createSky } from "./sky.js?v=20261108-2229";
-import { World } from "./world.js?v=20261108-2229";
-import { Body } from "./planet.js?v=20261108-2229";
-import { Input } from "./input.js?v=20261108-2229";
-import { createOccFade } from "./occfade.js?v=20261108-2229";
-import { Player, SIT } from "./player.js?v=20261108-2229";
-import { CameraRig } from "./camera.js?v=20261108-2229";
-import { AsciiPass } from "./ascii.js?v=20261108-2229";
-import { toonify, twoTone, twoToneSun, outline, inkResize, RIM_INK_PX, inkShell } from "./toon.js?v=20261108-2229";
-import { setupMoonFlag } from "./moonflag.js?v=20261108-2229";
-import { moonwalkInstall, moonwalkUpdate } from "./moonwalk.js?v=20261108-2229";
-import { createBoardMap } from "./boardmap.js?v=20261108-2229";
+import { createSky } from "./sky.js?v=20261108-2312";
+import { World } from "./world.js?v=20261108-2312";
+import { Body } from "./planet.js?v=20261108-2312";
+import { Input } from "./input.js?v=20261108-2312";
+import { createOccFade } from "./occfade.js?v=20261108-2312";
+import { Player, SIT } from "./player.js?v=20261108-2312";
+import { CameraRig } from "./camera.js?v=20261108-2312";
+import { AsciiPass } from "./ascii.js?v=20261108-2312";
+import { toonify, twoTone, twoToneSun, outline, inkResize, RIM_INK_PX, inkShell } from "./toon.js?v=20261108-2312";
+import { setupMoonFlag } from "./moonflag.js?v=20261108-2312";
+import { moonwalkInstall, moonwalkUpdate } from "./moonwalk.js?v=20261108-2312";
+import { createBoardMap } from "./boardmap.js?v=20261108-2312";
 /* cast + fauna ink: same 2.25 px as everything at range, never thinner than 13 mm up close */
 const CHAR_INK = { minM: 0.008 };
 // the creatures: a thinner line, held 9 cm back in depth, so close parts (eyes, lips, arms on the body) don't ink into one blob
@@ -21,38 +21,38 @@ const FAUNA_INK = { ...CHAR_INK, px: 1.6, back: 0.09 };
 import { computeBoundsTree, acceleratedRaycast } from "three-mesh-bvh";
 THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree;
 THREE.Mesh.prototype.raycast = acceleratedRaycast;
-import { UI } from "./ui.js?v=20261108-2229";
-import { FX } from "./fx.js?v=20261108-2229";
-import { makeSignpost, fontsReady } from "./signs.js?v=20261108-2229";
-import { cleanMoon } from "./moon.js?v=20261108-2229";
-import { Birds, Butterflies, waterMaterial } from "./life.js?v=20261108-2229";
-import { PondWater } from "./water.js?v=20261108-2229";
-import { buildReeds } from "./reeds.js?v=20261108-2229";
-import { Campfire } from "./fire.js?v=20261108-2229";
-import { Grass, GROUND_GLSL, groundUniforms, groundFields } from "./grass.js?v=20261108-2229";
-import { FieldFloor, FIELD_EFFECTS, Vending, MoonPlay, terraceFrame } from "./extras.js?v=20261108-2229";
-import { HiveFloor } from "./hive.js?v=20261108-2229";
-import { createAmbient } from "./audio.js?v=20261108-2229";
-import { createSfx } from "./sfx.js?v=20261108-2229";
-import { Booth, makeBooth, STAGE_FADE } from "./booth.js?v=20261108-2229";
-import { createPinOccluder } from "./occluders.js?v=20261108-2229";
-import { createSeatOrbit } from "./seatorbit.js?v=20261108-2229";
-import { createSitButterfly, SITFLY, headPerch } from "./sitfly.js?v=20261108-2229";
-import { Slate } from "./slate.js?v=20261108-2229";
-import { installSid } from "./sid.js?v=20261108-2229";
-import { installAP } from "./ap.js?v=20261108-2229";
-import { CONSTELLATION_NAME } from "./copy-r7.js?v=20261108-2229";   // R7 T5
-import { installGulp } from "./gulp.js?v=20261108-2229";
-import { installChomp } from "./chomp.js?v=20261108-2229";
-import { installLumen } from "./lumen.js?v=20261108-2229";
-import { installZip } from "./zip.js?v=20261108-2229";
-import { installRestart } from "./restart.js?v=20261108-2229";   // R7 T3
-import { installNight } from "./night.js?v=20261108-2229";   // R7 T6
-import { installRadio } from "./radio.js?v=20261108-2229";   // R7 T7
-import { installRewards } from "./rewards.js?v=20261108-2229";   // R7 T8
-import { installTrees, dropLobes, clearRoads, roadDistance, ROAD_HALF } from "./trees.js?v=20261108-2229";
-import { GreatCircleArc } from "./arc.js?v=20261108-2229";
-import { createHelmet, setHelmet, updateHelmet } from "./helmet.js?v=20261108-2229";
+import { UI } from "./ui.js?v=20261108-2312";
+import { FX } from "./fx.js?v=20261108-2312";
+import { makeSignpost, fontsReady } from "./signs.js?v=20261108-2312";
+import { cleanMoon } from "./moon.js?v=20261108-2312";
+import { Birds, Butterflies, waterMaterial } from "./life.js?v=20261108-2312";
+import { PondWater } from "./water.js?v=20261108-2312";
+import { buildReeds } from "./reeds.js?v=20261108-2312";
+import { Campfire } from "./fire.js?v=20261108-2312";
+import { Grass, GROUND_GLSL, groundUniforms, groundFields } from "./grass.js?v=20261108-2312";
+import { FieldFloor, FIELD_EFFECTS, Vending, MoonPlay, terraceFrame } from "./extras.js?v=20261108-2312";
+import { HiveFloor } from "./hive.js?v=20261108-2312";
+import { createAmbient } from "./audio.js?v=20261108-2312";
+import { createSfx } from "./sfx.js?v=20261108-2312";
+import { Booth, makeBooth, STAGE_FADE } from "./booth.js?v=20261108-2312";
+import { createPinOccluder } from "./occluders.js?v=20261108-2312";
+import { createSeatOrbit } from "./seatorbit.js?v=20261108-2312";
+import { createSitButterfly, SITFLY, headPerch } from "./sitfly.js?v=20261108-2312";
+import { Slate } from "./slate.js?v=20261108-2312";
+import { installSid } from "./sid.js?v=20261108-2312";
+import { installAP } from "./ap.js?v=20261108-2312";
+import { CONSTELLATION_NAME } from "./copy-r7.js?v=20261108-2312";   // R7 T5
+import { installGulp } from "./gulp.js?v=20261108-2312";
+import { installChomp } from "./chomp.js?v=20261108-2312";
+import { installLumen } from "./lumen.js?v=20261108-2312";
+import { installZip } from "./zip.js?v=20261108-2312";
+import { installRestart } from "./restart.js?v=20261108-2312";   // R7 T3
+import { installNight } from "./night.js?v=20261108-2312";   // R7 T6
+import { installRadio } from "./radio.js?v=20261108-2312";   // R7 T7
+import { installRewards } from "./rewards.js?v=20261108-2312";   // R7 T8
+import { installTrees, dropLobes, clearRoads, roadDistance, ROAD_HALF } from "./trees.js?v=20261108-2312";
+import { GreatCircleArc } from "./arc.js?v=20261108-2312";
+import { createHelmet, setHelmet, updateHelmet } from "./helmet.js?v=20261108-2312";
 
 /* A tiny planet you can walk all the way around. Four projects are mini-games
    on terraces, four more are screens on little kiosks, and the ninth waits on the
@@ -471,7 +471,7 @@ async function mountGame(id) {
   const anchor = A("GAME_" + id);
   if (!anchor) return;
   let Mod;
-  try { Mod = (await import(`./games/${id}.js?v=20261108-2229`)).default; } catch (e) {
+  try { Mod = (await import(`./games/${id}.js?v=20261108-2312`)).default; } catch (e) {
     console.warn("game module missing", id, e);
     // the project stays reachable: its terrace offers the project card instead of a silent nothing
     spots.push({ id, kind: "kiosk", pos: wpos(anchor), r: 3, body: "planet", label: "Take a peek", target: anchor,

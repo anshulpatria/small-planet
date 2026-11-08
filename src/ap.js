@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { AP_HEY, pickApLine, bumpApKnocks, moonVisited } from "./copy-r7.js?v=20261108-2229";
+import { AP_HEY, pickApLine, bumpApKnocks, moonVisited } from "./copy-r7.js?v=20261108-2312";
 
 /* AP, the boy who lives in the white igloo studio house.
    ap.glb (blender/build_ap.py) holds a rigged boy, hands in his pockets, with the clips AP_Idle and AP_Walk. He lives

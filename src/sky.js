@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
-import { outline, inkFollow } from "./toon.js?v=20261108-2229";
-import { createNightStars, BAND } from "./nightsky.js?v=20261108-2229";
+import { outline, inkFollow } from "./toon.js?v=20261108-2312";
+import { createNightStars, BAND } from "./nightsky.js?v=20261108-2312";
 
 /* two soft cel bands for the clouds: shade and sunlit */
 function cloudRamp() {

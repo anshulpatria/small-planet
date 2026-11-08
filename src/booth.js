@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { toonify, outline, inkU, inkResize } from "./toon.js?v=20261108-2229";
-import { OPTIONS, load, save, apply } from "./customise.js?v=20261108-2229";
+import { toonify, outline, inkU, inkResize } from "./toon.js?v=20261108-2312";
+import { OPTIONS, load, save, apply } from "./customise.js?v=20261108-2312";
 
 /* Photo booth: a little box camera on a tripod on the lookout's top deck, the
    customiser panel (#booth) and the postcard (off-screen render, its own camera, no HUD). */

@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { inkShell } from "./toon.js?v=20261108-2229";
-import { cleanStars, STARS_VERSION } from "./savestate.js?v=20261108-2229";
+import { inkShell } from "./toon.js?v=20261108-2312";
+import { cleanStars, STARS_VERSION } from "./savestate.js?v=20261108-2312";
 
 /* Things to do on the quieter platforms:
    - FieldFloor: nine of Field's cursor effects set into the Field terrace as a 3 × 3 grid of

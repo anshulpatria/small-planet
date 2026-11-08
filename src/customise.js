@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { outline } from "./toon.js?v=20261108-2229";
+import { outline } from "./toon.js?v=20261108-2312";
 
 /* Blip customiser. State model for every option; saved under its own key
    (never "archipelago.v1"). apply(figure, state) restyles the toy.glb figure in place:

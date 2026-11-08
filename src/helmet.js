@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { inkU, INK_PX } from "./toon.js?v=20261108-2229";
+import { inkU, INK_PX } from "./toon.js?v=20261108-2312";
 
 /* Fishbowl helmet for Blip's cannon trip.
    A transparent toon bubble parented to the figure (so it tumbles with him in flight), open at the

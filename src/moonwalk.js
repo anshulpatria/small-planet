@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { markMoonVisited } from "./copy-r7.js?v=20261108-2229";
+import { markMoonVisited } from "./copy-r7.js?v=20261108-2312";
 
 /* ASCII moonwalk, "Spell GITHUB" (the GitHub Portfolio's game, id artboard-42). An inked cream pad stands beside the kiosk's
    visitor spot: "Step into the terminal". Stepping on it (or pressing E there) holds the ASCII pass on (AsciiPass.hold: sustained
