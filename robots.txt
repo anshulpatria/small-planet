@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://anshulpatria.github.io/small-planet/sitemap.xml
