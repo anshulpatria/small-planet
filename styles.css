@@ -1,0 +1,724 @@
+/* Tokens lifted from anshulpatria.github.io so the world and the site read as one hand. */
+:root{
+  --paper:#E4E5E0; --paper-2:#EDEEEA; --plate:#FFFFFF;
+  --ink:#16171A; --ink-soft:#6E706C; --signal:#2B2BEE; --rule:#C9CAC3;
+  --glass:rgba(250,250,247,.72);
+  --shadow:0 18px 50px -18px rgba(22,23,26,.35), 0 2px 6px rgba(22,23,26,.08);
+  --f-display:"Bricolage Grotesque", system-ui, sans-serif;
+  --f-body:"Instrument Sans", system-ui, sans-serif;
+  --r:18px; --ease:cubic-bezier(.22,1,.36,1);
+  --gut:clamp(16px, 3vw, 28px);
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--paper);color:var(--ink);font-family:var(--f-body);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:var(--cur-pt, pointer)}
+a{color:inherit}
+svg{fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+kbd{white-space:nowrap;font-family:var(--f-body);font-size:11px;font-weight:600;line-height:1;padding:4px 6px;border-radius:6px;background:var(--ink);color:var(--paper)}
+
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none}
+
+/* ---------- buttons */
+.btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:13px 22px;font-weight:600;font-size:15px;text-decoration:none;transition:transform .3s var(--ease), background .2s, opacity .2s}
+.btn:hover{transform:translateY(-1px)}
+.btn:disabled{opacity:.35;cursor:progress;transform:none}
+.btn-ghost{background:transparent;box-shadow:inset 0 0 0 1.5px var(--ink)}
+.chip{white-space:nowrap;flex:none;border:0;border-radius:999px;padding:9px 14px;font-size:13px;font-weight:600;background:var(--plate);display:inline-flex;align-items:center;gap:8px}
+
+/* ---------- intro */
+.intro{position:fixed;inset:0;z-index:40;display:grid;place-items:center;padding:var(--gut);
+  place-items:center start;padding-left:max(var(--gut), 7vw);
+  transition:opacity 1s var(--ease), visibility 1s}
+.intro.gone{opacity:0;visibility:hidden;pointer-events:none}
+.intro-inner{max-width:760px;width:100%}
+.eyebrow{margin:0 0 18px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-soft)}
+/* the name as extruded cel letters in the Explore button's blue, drawn as SVG text so every copy sits
+   at its exact sub-pixel offset: the face on top; under it a solid extrusion down-right in a deep
+   blue (#nm-5 is 32 copies, each about half a pixel further, by doubling <use>s); at the back the same
+   sweep with an ink stroke, which is the outline around face and extrusion, again offset 4/5 as the
+   buttons' hard ink drop. The SVG is sized in em, so depth, outline and drop follow the clamp */
+.intro-name{margin:0 0 .08em;font-family:var(--f-display);font-weight:800;font-variation-settings:"wdth" 80;font-size:clamp(58px,13vw,148px);line-height:.9}
+.intro-name svg{display:block;width:4.6em;height:.9em;overflow:visible;stroke:none;text-rendering:geometricPrecision}
+.intro-name .nm-face{fill:var(--cel-blue)}
+.intro-name .nm-ext{fill:#181894}   /* the side: the face blue at about 57% of its lightness */
+.intro-name .nm-ink{fill:var(--ink);stroke:var(--ink);stroke-width:6;stroke-linejoin:round}
+.intro-name-text{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.intro-tag{margin:18px 0 34px;font-size:clamp(17px,2.2vw,22px);color:var(--ink-soft)}
+.loadbar{height:2px;background:var(--rule);border-radius:2px;overflow:hidden;max-width:420px}
+.loadbar span{display:block;height:100%;width:0;background:var(--signal);transition:width .3s var(--ease)}
+.loadnote{margin:10px 0 28px;font-size:13px;color:var(--ink-soft);min-height:1.2em}
+.intro-actions{display:flex;gap:16px;flex-wrap:wrap}
+
+/* ---------- cel-shaded buttons (the cursor's look): a rounded rectangle in two tones, one flat colour
+   with a hard darker band along the bottom (an inset shadow, no gradient), a thick ink outline and a
+   hard ink drop that the button presses down into. Keyboard focus (html.kbd, set on Tab in index.html)
+   thickens the ink outline and lifts the button; mouse, touch and the focus() on load show nothing */
+:root{--cel-blue:#3B3BF2;--cel-blue-lo:#1F1FB4;--cel-grey:#E6E7E2;--cel-grey-lo:#BABCB3}
+.btn-cel{--c:var(--cel-blue);--lo:var(--cel-blue-lo);
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 24px 15px;border:3px solid var(--ink);border-radius:16px;
+  background:var(--c);color:#fff;font:700 16px/1.1 var(--f-body);letter-spacing:.005em;text-decoration:none;text-shadow:0 2px 0 var(--lo);
+  box-shadow:inset 0 -6px 0 var(--lo),4px 5px 0 var(--ink);
+  transition:transform .14s var(--ease),box-shadow .14s var(--ease),opacity .2s;-webkit-tap-highlight-color:transparent;user-select:none}
+.btn-cel-grey{--c:var(--cel-grey);--lo:var(--cel-grey-lo);color:var(--ink);text-shadow:none}
+@media (hover:hover){.btn-cel:not(:disabled):hover{transform:translate(-1px,-2px);box-shadow:inset 0 -6px 0 var(--lo),5px 7px 0 var(--ink)}}
+.btn-cel:focus,.btn-cel:focus-visible{outline:none}
+html.kbd .btn-cel:not(:disabled):focus-visible{transform:translate(-1px,-2px);box-shadow:inset 0 0 0 2px var(--ink),inset 0 -8px 0 var(--lo),5px 7px 0 var(--ink)}
+.btn-cel:not(:disabled):active,html.kbd .btn-cel:not(:disabled):focus-visible:active{transform:translate(4px,5px);box-shadow:inset 0 -3px 0 var(--lo),0 0 0 var(--ink);transition-duration:.05s}
+.btn-cel:disabled{opacity:.4;cursor:progress}
+@media (max-width:640px){
+  .intro-actions{gap:14px}
+  .intro-actions .btn-cel{padding:12px 17px 14px;font-size:15px;border-radius:14px}
+}
+.toast{position:fixed;z-index:12;left:50%;top:calc(var(--gut) + 64px);transform:translate(-50%,-8px);padding:12px 20px;border-radius:22px;background:var(--signal);color:#fff;font-size:14px;font-weight:500;line-height:1.4;text-align:center;width:max-content;max-width:min(560px,calc(100vw - 32px));opacity:0;transition:opacity .5s var(--ease), transform .5s var(--ease);pointer-events:none}
+.toast b{font-weight:700}
+.toast svg{width:18px;height:18px;vertical-align:-4px;margin-right:8px}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.focusbar{position:fixed;z-index:12;left:50%;bottom:var(--gut);transform:translateX(-50%);display:flex;gap:8px;align-items:center;padding:8px;border-radius:999px;background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:var(--shadow);max-width:calc(100vw - 2 * var(--gut));overflow-x:auto}
+@media (min-width:900px){
+  /* with the panel open, the world's centre moves left (camera view offset) and so does the bar */
+  body.panel-open .focusbar{left:calc((100vw - min(400px, 100vw) - var(--gut)) / 2)}
+}
+.focusbar,.prompt{transition:left .7s var(--ease)}
+.focus-title{flex:none;font-family:var(--f-display);font-weight:600;padding:0 10px;white-space:nowrap}
+.focus-tools{flex:none;display:flex;gap:6px}
+.focus-tools:empty{display:none}
+/* the status line is the one thing that gives way (ellipsis), so Leave never leaves the screen; the bulb carries the same text */
+.focus-status{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px;font-weight:600;color:var(--ink);padding:0 8px;white-space:nowrap}
+#focusInfo,#focusExit{flex:none}
+#focusExit .x{display:none;width:14px;height:14px;stroke-width:2.2}
+/* touch has no Esc: the exit is a plain "Leave" with an x, never a key badge */
+body.touch #focusExit kbd, body.touch .prompt kbd, body.touch .menu-item kbd, html[data-input=pad] .menu-item kbd{display:none}
+body.touch #focusExit .x{display:block}
+html[data-input=pad] .prompt kbd, html[data-input=pad] #focusExit kbd{font-size:0}
+html[data-input=pad] .prompt kbd::before{content:"A";font:800 14px var(--f-display)}
+html[data-input=pad] #focusExit kbd::before{content:"B";font:600 11px var(--f-body)}
+
+/* ---------- panel */
+.panel{position:fixed;z-index:20;top:var(--gut);right:var(--gut);bottom:var(--gut);width:min(400px, calc(100vw - 2 * var(--gut)));border-radius:var(--r);background:var(--paper-2);box-shadow:var(--shadow);overflow:auto;transform:translateX(calc(100% + 40px));transition:transform .7s var(--ease)}
+.panel.open{transform:none}
+.panel-close{position:absolute;top:12px;right:12px;width:38px;height:38px;border:0;border-radius:999px;background:var(--plate);display:grid;place-items:center;z-index:2}
+.panel-shot{margin:0;aspect-ratio:3/2;background:#101114;overflow:hidden}
+.panel-shot img{width:100%;height:100%;object-fit:cover;display:block}
+.panel-body{padding:22px 24px 28px}
+.panel-meta{margin:0 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft)}
+.panel h2{margin:0;font-family:var(--f-display);font-weight:700;font-size:34px;letter-spacing:-.03em;line-height:1}
+.panel-myth{margin:12px 0 0;font-size:18px;font-style:italic}
+.panel-desc{margin:10px 0 0;font-size:14.5px;line-height:1.55;color:var(--ink-soft);text-wrap:pretty}
+.tags{list-style:none;padding:0;margin:16px 0 22px;display:flex;gap:6px;flex-wrap:wrap}
+.tags li{font-size:12px;padding:5px 10px;border-radius:999px;box-shadow:inset 0 0 0 1px var(--rule)}
+
+/* ---------- map */
+.map{position:fixed;inset:0;z-index:30;display:grid;place-items:center;padding:var(--hud-t) var(--hud-r) var(--hud-b) var(--hud-l);background:rgba(228,229,224,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;visibility:hidden;transition:opacity .45s var(--ease), visibility .45s}
+.map.open{opacity:1;visibility:visible}
+.map-card{position:relative;width:min(1040px,100%);max-height:100%;overflow:auto;border-radius:var(--r);background:var(--paper-2);box-shadow:var(--shadow);padding:22px}
+.map-head h2{margin:0;font-family:var(--f-display);font-size:28px;letter-spacing:-.02em}
+.map-head p{margin:4px 0 0;font-size:14px;color:var(--ink-soft)}
+.map-stage{position:relative;width:100%;aspect-ratio:16/10;max-height:calc(100vh - 190px);margin-top:10px;border-radius:calc(var(--r) - 6px);overflow:hidden;background:radial-gradient(120% 90% at 50% 40%,#FBF6EC 0%,#EFE6D6 100%)}
+.map-stage canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.map-stage canvas:active{cursor:grabbing}
+.map-pins{position:absolute;inset:0;pointer-events:none}
+.map-pin{position:absolute;left:0;top:0;pointer-events:auto;font:600 12px/1 var(--f-body);padding:5px 10px 6px;border-radius:999px;background:#FBF8F1;color:var(--ink);border:1.5px solid var(--ink);box-shadow:0 2px 0 var(--ink);white-space:nowrap;transition:background .2s,color .2s,box-shadow .15s}
+.map-pin.hot,.map-pin:focus-visible{background:#DADBFF;outline:none;box-shadow:0 3px 0 var(--ink)}
+.map-pin.found{background:var(--signal);border-color:var(--ink);color:#fff}
+.map-pin.found.hot,.map-pin.found:focus-visible{background:#4747FF}
+.map-pin.locked{border-style:dashed;color:var(--ink-soft);cursor:not-allowed}
+.map-pin.locked::before{content:"";display:inline-block;width:8px;height:9px;margin-right:5px;vertical-align:-1px;border:1.5px solid currentColor;border-radius:2px 2px 1px 1px;box-sizing:border-box;border-top-width:4px}
+.map-pin.away{visibility:hidden}
+.map-pin::after{content:"";position:absolute;left:50%;top:50%;width:max(100%,44px);height:44px;transform:translate(-50%,-50%)}   /* 44 px hit area, invisible */
+.map-stage.flat .map-pin::after{display:none}
+.map-flip::before{content:"";position:absolute;inset:-6px -4px}
+.map-face{position:absolute;left:14px;top:12px;margin:0;font:700 17px/1.1 var(--f-display);letter-spacing:-.01em;color:var(--ink);pointer-events:none}
+.map-flip{position:absolute;right:12px;bottom:12px;font:600 13px/1 var(--f-body);padding:8px 14px 9px;border-radius:999px;background:#FBF8F1;color:var(--ink);border:1.5px solid var(--ink);box-shadow:0 2px 0 var(--ink)}
+.map-flip::after{content:" \21BB";font-weight:700}
+.map-flip:hover,.map-flip:focus-visible{background:#DADBFF;outline:none}
+.map-stage.flat .map-face,.map-stage.flat .map-flip{display:none}
+.map-you{position:absolute;left:0;top:0;font:700 11px/1 var(--f-body);padding:4px 8px;border-radius:999px;background:var(--signal);color:#fff;border:1.5px solid var(--ink);pointer-events:none}
+@media (max-width:600px){.map-stage{aspect-ratio:1/1;max-height:calc(100vh - 170px)}.map-pin{font-size:10px;padding:3px 7px 4px;border-width:1.25px;box-shadow:0 1.5px 0 var(--ink)}.map-card{padding:16px}.map-face{font-size:14px;left:10px;top:8px}.map-flip{font-size:11px;padding:6px 10px 7px;right:8px;bottom:8px}}
+.map-stage.flat{aspect-ratio:auto;max-height:none;background:none}
+.map-stage.flat canvas,.map-stage.flat .map-you{display:none}
+.map-stage.flat .map-pins{position:static;display:flex;flex-wrap:wrap;gap:8px}
+.map-stage.flat .map-pin{position:static;transform:none!important}
+.map-legend{list-style:none;margin:6px 0 0;padding:0;display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-soft)}
+.map-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px;box-shadow:inset 0 0 0 1px var(--ink)}
+
+/* ---------- list */
+.list{position:fixed;inset:0;z-index:25;overflow:auto;background:var(--paper);opacity:0;visibility:hidden;transition:opacity .5s var(--ease), visibility .5s}
+.list.open{opacity:1;visibility:visible}
+.list-inner{max-width:1180px;margin:0 auto;padding:calc(var(--hud-t) + 70px) var(--hud-r) calc(60px + env(safe-area-inset-bottom, 0px)) var(--hud-l)}
+.list-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:24px}
+.list-head h2{margin:0;font-family:var(--f-display);font-weight:700;font-size:clamp(40px,7vw,80px);letter-spacing:-.04em;line-height:.9}
+.fallback-note{margin:0 0 20px;padding:12px 16px;border-radius:12px;background:var(--paper-2);font-size:14px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:18px}
+.card{display:flex;flex-direction:column;border-radius:var(--r);overflow:hidden;background:var(--plate);text-decoration:none;box-shadow:0 1px 0 var(--rule);transition:transform .4s var(--ease), box-shadow .4s}
+.card:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+.card img{width:100%;aspect-ratio:3/2;object-fit:cover;background:#101114;display:block}
+.card-body{padding:16px 18px 20px}
+.card-meta{font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-soft);display:flex;justify-content:space-between}
+.card h3{margin:6px 0 4px;font-family:var(--f-display);font-size:22px;letter-spacing:-.02em}
+.card .myth{margin:0 0 6px;font-style:italic}
+.card .desc{margin:0;font-size:13.5px;line-height:1.5;color:var(--ink-soft)}
+.card .found{color:var(--signal)}
+
+/* ======================================================================================================
+   TOUCH CONTROLS (track I, I2): the stick (bottom-left) and the interact button (bottom-right; jump is a centre tap).
+   Same size (--ctl-size) and the same Collector's-dock treatment as the HUD buttons: cream face, 3px ink outline, one
+   shade band, hard ink drop, no blur. They sit in the corner squares the HUD reserves (--ctl-inset / --ctl-bottom, see
+   the HUD block below); the dock, hint and prompt stay above them. Everything between them is the camera's: a drag orbits. */
+.stick,.act-btn{position:fixed;z-index:11;bottom:var(--ctl-bottom);width:var(--ctl-size);height:var(--ctl-size);box-sizing:border-box;border-radius:50%;
+  border:3px solid var(--cel-ink);background:var(--cream);color:var(--cel-ink);box-shadow:inset 0 -7px 0 var(--cream-lo),3px 5px 0 var(--cel-ink);
+  display:none;touch-action:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;padding:0}
+.stick{left:var(--ctl-inset)}
+.act-btn{right:max(16px, env(safe-area-inset-right, 0px));place-items:center}
+.stick-knob{position:absolute;left:50%;top:50%;width:40px;height:40px;margin:-22px 0 0 -20px;border-radius:50%;box-sizing:border-box;
+  border:3px solid var(--cel-ink);background:#FFFDF6;box-shadow:inset 0 -5px 0 var(--cream-lo),0 2px 0 var(--cel-ink);transition:transform .14s var(--ease)}
+.act-btn svg{width:36px;height:36px;stroke:var(--cel-ink);stroke-width:2;margin-top:-2px}
+body.touch .stick{display:block}
+body.touch .act-btn{display:grid}
+body.touch.is-loading .stick, body.touch.focus .stick, body.touch.is-loading .act-btn, body.touch.focus .act-btn{display:none}
+.stick.live{background:var(--cream-lo);box-shadow:inset 0 -3px 0 var(--socket-lo),3px 5px 0 var(--cel-ink)}
+.stick.live .stick-knob{transition:none}
+.act-btn.on:active{transform:translate(2px,3px);box-shadow:inset 0 -3px 0 var(--cream-lo),1px 2px 0 var(--cel-ink)}
+.act-btn:focus{outline:none}
+.act-btn:focus-visible{outline:3px solid var(--signal);outline-offset:3px}
+/* interact (the E button): dimmed and flat while nothing is in range, cream with an ink hand and a blue dot (the prompt's
+   own colour) while the prompt is up. main.js sets .on from the prompt's visibility / html[data-prompt]. */
+.act-btn{opacity:.5;box-shadow:inset 0 -7px 0 var(--cream-lo),2px 3px 0 var(--cel-ink);transition:opacity .2s var(--ease)}
+.act-btn.on{opacity:1;box-shadow:inset 0 -7px 0 var(--cream-lo),3px 5px 0 var(--cel-ink)}
+.act-btn.on svg{stroke:var(--cel-blue,#2B2BEE)}
+/* R7 B2 jump: the interact button's twin (same cream face, ink outline, band and drop), a little smaller, in the same bottom row to its left.
+   Always available, so its icon stays ink (the blue is the interact prompt's own colour). */
+.jump-btn{right:calc(max(16px, env(safe-area-inset-right, 0px)) + var(--ctl-size) + 14px);width:calc(var(--ctl-size) * .82);height:calc(var(--ctl-size) * .82);bottom:calc(var(--ctl-bottom) + var(--ctl-size) * .09)}   /* lifted so all three touch buttons share one centre line */
+.act-btn.jump-btn.on svg{stroke:var(--cel-ink)}
+/* ====================================================================================================== */
+
+.fade{position:fixed;inset:0;z-index:35;background:var(--paper);opacity:0;pointer-events:none;transition:opacity .45s var(--ease)}
+.fade.on{opacity:1}
+
+@media (max-width:640px){
+  .intro{place-items:end start;padding-bottom:12vh}
+  .panel{top:auto;left:var(--gut);height:min(78vh,640px);width:auto;transform:translateY(calc(100% + 40px))}   /* one slot up: the jump button holds gut + 136 under the right thumb */
+  /* the mini-game bar: title + About + Leave on row one (the title truncates), the status wraps on
+     its own row and the tools scroll on a third, so Leave can never be pushed off-screen */
+  .focusbar{flex-wrap:wrap;border-radius:22px;overflow:visible;width:calc(100vw - 2 * var(--gut));row-gap:6px}
+  .focus-title{order:0;flex:1 1 0;min-width:0;overflow:hidden;text-overflow:ellipsis;padding:0 4px 0 8px}
+  #focusInfo{order:1} #focusExit{order:2}
+  .focus-status{order:3;flex:1 0 100%;white-space:normal;line-height:1.3;padding:0 8px 2px;font-size:12.5px}
+  .focus-tools{order:4;flex:1 0 100%;flex-wrap:wrap;row-gap:6px}   /* wraps, never scrolls: a chip off the edge (Pin Art's Undo / Reset) went unfound */
+}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms !important;animation-duration:.01ms !important;animation-iteration-count:1 !important}}
+
+/* film player */
+.video{position:fixed;inset:0;z-index:32;display:grid;place-items:center;padding:var(--hud-t) var(--hud-r) var(--hud-b) var(--hud-l);background:rgba(30,31,38,.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:0;visibility:hidden;transition:opacity .4s var(--ease),visibility .4s}
+.video.open{opacity:1;visibility:visible}
+.video-card{position:relative;width:min(980px,100%);border-radius:var(--r);overflow:hidden;background:var(--ink);box-shadow:var(--shadow)}
+.video-card .panel-close{top:10px;right:10px}
+.video-frame{aspect-ratio:16/9;background:#000}
+.video-frame iframe{width:100%;height:100%;border:0;display:block}
+.video-caption{margin:0;padding:12px 18px 14px;color:var(--paper);font-size:14px}
+html.kbd .video-card .panel-close:focus-visible{outline-color:var(--cream) !important}
+
+/* ---------- photo booth + customiser */
+.booth .panel-body{padding-top:26px}
+.booth .panel-close{width:44px;height:44px}   /* >= 40 px tap target (the shared close is 38) */
+.booth-h{margin:20px 0 8px;font-family:var(--f-display);font-size:15px;font-weight:700;letter-spacing:-.01em}
+.booth-row{display:flex;flex-wrap:wrap;gap:8px}
+.booth-row .chip{min-height:40px;cursor:var(--cur-pt, pointer)}
+.booth-row button:disabled{opacity:.45;cursor:not-allowed}
+.swatch{width:40px;height:40px;border-radius:999px;border:2px solid var(--plate);background:var(--sw);box-shadow:0 0 0 1.5px var(--rule);cursor:var(--cur-pt, pointer);padding:0}
+.booth-photo{margin-top:24px;width:100%;justify-content:center}
+.booth-photo:disabled{opacity:.6}
+@media (max-width:640px){
+  /* a bottom sheet under the HUD so Blip stays in view above it while you pick (live preview) */
+  .booth.panel{top:auto;max-height:min(54vh,460px)}
+  .booth .panel-body{padding:16px 20px 18px}
+  .booth h2{font-size:26px}
+  .booth .panel-desc{margin:6px 0 0;font-size:14px}
+  .booth-h{margin:12px 0 6px}
+  .booth-row{gap:6px}
+  .booth-photo{margin-top:16px}
+}
+
+/* custom cursor: the Blender-rendered arrow (cream face, lavender sides, ink outline), lavender-face variant on clickables.
+   Hotspot is the arrow tip in 1x CSS px: 6 3 (the 64 px file is the 2x). Plain cursors are the fallback where image-set() is unsupported. */
+:root{--cur:default;--cur-pt:pointer}
+@supports (cursor:image-set(url("assets/cursor/arrow-32.png") 1x) 6 3,default){
+  :root{--cur:image-set(url("assets/cursor/arrow-32.png") 1x,url("assets/cursor/arrow-64.png") 2x) 6 3,default;--cur-pt:image-set(url("assets/cursor/pointer-32.png") 1x,url("assets/cursor/pointer-64.png") 2x) 6 3,pointer;--cur-press:image-set(url("assets/cursor/press-32.png") 1x,url("assets/cursor/press-64.png") 2x) 6 3,pointer}
+}
+@supports (cursor:-webkit-image-set(url("assets/cursor/arrow-32.png") 1x) 6 3,default) and (not (cursor:image-set(url("assets/cursor/arrow-32.png") 1x) 6 3,default)){
+  :root{--cur:-webkit-image-set(url("assets/cursor/arrow-32.png") 1x,url("assets/cursor/arrow-64.png") 2x) 6 3,default;--cur-pt:-webkit-image-set(url("assets/cursor/pointer-32.png") 1x,url("assets/cursor/pointer-64.png") 2x) 6 3,pointer;--cur-press:-webkit-image-set(url("assets/cursor/press-32.png") 1x,url("assets/cursor/press-64.png") 2x) 6 3,pointer}
+}
+html,body,canvas{cursor:var(--cur)}
+button,a,[role="button"],[data-mode],.glyph,.map-pin,.chip,.swatch{cursor:var(--cur-pt)}
+input[type="text"],textarea{cursor:text}
+
+/* ---- Gravity Pong coach (web/src/games/gravity-pong.js): ghost hand, drag line and one-line instruction.
+   The script places each piece every frame from the court's screen position; nothing here takes pointer input. */
+.gp-coach{position:fixed;inset:0;z-index:13;pointer-events:none;opacity:0;transition:opacity .35s var(--ease)}
+.gp-coach.gp-on{opacity:1}
+.gp-coach.gp-gentle{transition-duration:1.2s}
+.gp-coach.gp-away{opacity:0}
+.gp-coach-hand,.gp-coach-tap,.gp-coach-line{position:absolute;left:0;top:0;will-change:transform}
+.gp-coach-hand{transform-origin:19px 3px;opacity:0;filter:drop-shadow(0 6px 8px rgba(22,23,26,.28))}
+.gp-coach-hand svg{display:block}
+.gp-coach-tap{width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;box-shadow:inset 0 0 0 3px var(--plate);opacity:0}
+.gp-coach-drag{position:absolute;inset:0;width:100%;height:100%;overflow:visible;opacity:0}
+.gp-coach-drag line{stroke:var(--plate);stroke-width:3;stroke-linecap:round;stroke-dasharray:2 9}
+.gp-coach-drag path{fill:none;stroke:var(--plate);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.gp-coach.gp-still .gp-coach-drag path{opacity:1}
+.gp-coach-line{margin:0;padding:9px 15px;border-radius:999px;background:var(--plate);color:var(--ink);box-shadow:var(--shadow);font:600 13px/1.2 var(--f-body);white-space:nowrap}
+.gp-coach-line .gp-short{display:none}
+@media (max-width:640px){.gp-coach-line .gp-long{display:none}.gp-coach-line .gp-short{display:inline}}
+
+/* ---------- finale: every project discovered (ui.js setupFinale) */
+.finale{position:fixed;inset:0;z-index:34;display:grid;place-items:center;padding:var(--hud-t) var(--hud-r) var(--hud-b) var(--hud-l);background:rgba(228,229,224,.55);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);opacity:0;visibility:hidden;transition:opacity .45s var(--ease),visibility .45s}
+.finale.open{opacity:1;visibility:visible}
+.finale-card{position:relative;width:min(470px,100%);max-height:100%;overflow:auto;border-radius:var(--r);background:var(--paper-2);box-shadow:var(--shadow);padding:28px 28px 30px;transform:translateY(14px);transition:transform .6s var(--ease)}
+.finale.open .finale-card{transform:none}
+.finale .panel-close:focus-visible{outline:2.5px solid var(--signal);outline-offset:2px}
+.finale-glyphs{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 18px;padding:0 44px 0 0;list-style:none}
+.finale-glyphs li{width:30px;height:30px;border-radius:10px;background:#DADBFF;color:var(--signal);display:grid;place-items:center}
+.finale-glyphs svg{width:18px;height:18px;stroke-width:1.9}
+.finale h2{margin:0;padding-right:36px;font-family:var(--f-display);font-weight:700;font-size:31px;line-height:1.02;letter-spacing:-.03em;text-wrap:balance}
+.finale-text{margin:12px 0 0;font-size:15.5px;line-height:1.5;color:var(--ink-soft);text-wrap:pretty}
+.finale-actions{margin-top:26px;display:flex;flex-wrap:wrap;align-items:center;gap:14px 20px}
+.finale-actions .btn-cel{font-size:17px;padding:15px 26px 17px}
+.finale-stay{border:0;background:none;padding:8px 2px;font-size:14px;font-weight:600;color:var(--ink-soft);text-decoration:underline;text-underline-offset:3px}
+.finale-stay:hover{color:var(--ink)}
+.finale-stay:focus{outline:none}
+.finale-stay:focus-visible{outline:2.5px solid var(--signal);outline-offset:3px;border-radius:6px}
+/* a toast raised while the card is up (the "link is on its way" note) shows above its backdrop */
+body:has(.finale.open) .toast{z-index:35}
+@media (max-width:640px){
+  .finale{place-items:end center}
+  .finale-card{padding:22px 20px 24px}
+  .finale-glyphs{gap:3px;margin-bottom:14px}
+  .finale-glyphs li{width:25px;height:25px;border-radius:8px}
+  .finale-glyphs svg{width:15px;height:15px}
+  .finale h2{font-size:26px}
+  .finale-text{font-size:15px}
+  .finale-actions{margin-top:20px;flex-direction:column;align-items:stretch;gap:10px}
+  .finale-actions .btn-cel{width:100%}
+  .finale-stay{align-self:center}
+}
+
+/* ======================================================================================================
+   HUD: direction C, "Collector's dock" (track UB, phase 1). Top bar, bulb + hint bubble, menu, dock, prompt slot.
+   Cel language: 3px ink outline, hard ink drop, two tones, no blur, no gradient.
+   --ctl-size / --ctl-inset / --ctl-bottom are the contract with track I (the move stick bottom-left and the jump
+   button bottom-right are --ctl-size circles at those insets); the dock and the prompt slot never enter them. */
+:root{
+  --cel-ink:#1E1F26; --cream:#F4EEDC; --cream-lo:#D9D0B6; --socket:#CFC7AE; --socket-lo:#B2A98E;
+  --ctl-size:88px; --ctl-inset:max(16px, env(safe-area-inset-left, 0px)); --ctl-bottom:calc(24px + env(safe-area-inset-bottom, 0px));
+  --hud-l:max(var(--gut), env(safe-area-inset-left, 0px)); --hud-r:max(var(--gut), env(safe-area-inset-right, 0px));
+  --hud-t:max(var(--gut), env(safe-area-inset-top, 0px)); --hud-b:max(var(--gut), env(safe-area-inset-bottom, 0px));
+  --rb:48px; --rgap:12px; --tok:46px;
+}
+.sr-only{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+body.is-loading .hud-top, body.is-loading .hud-bottom{opacity:0}
+.hud-top,.hud-bottom{transition:opacity .8s var(--ease), right .7s var(--ease)}
+body.focus .hud-bottom{opacity:0;pointer-events:none}
+
+/* top bar: one-line ink wordmark, the bulb, one menu button */
+.hud-top{position:fixed;z-index:10;top:0;left:0;right:0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+  padding:var(--hud-t) var(--hud-r) 0 var(--hud-l);pointer-events:none}
+.hud-top > *{pointer-events:auto}
+.wordmark{font:800 26px/48px var(--f-display);letter-spacing:-.02em;color:#fff;text-decoration:none;white-space:nowrap;
+  -webkit-text-stroke:6px var(--cel-ink);paint-order:stroke fill;text-shadow:2px 3px 0 var(--cel-ink);
+  /* the stroke and hard drop keep it legible over any backdrop, dark screens included */
+  min-height:44px;display:inline-block}
+html.kbd .wordmark:focus-visible{outline:3px solid var(--cel-ink);outline-offset:6px;border-radius:8px}
+.hud-right{position:relative;display:flex;gap:var(--rgap);align-items:flex-start}
+.rbtn{position:relative;width:var(--rb);height:var(--rb);padding:0;border-radius:50%;border:3px solid var(--cel-ink);background:var(--cream);color:var(--cel-ink);
+  box-shadow:inset 0 -5px 0 var(--cream-lo),3px 4px 0 var(--cel-ink);display:grid;place-items:center;transition:transform .12s var(--ease),box-shadow .12s var(--ease);-webkit-tap-highlight-color:transparent}
+.rbtn svg{width:22px;height:22px;stroke:var(--cel-ink);stroke-width:2;margin-top:-2px}
+.rbtn:active{transform:translate(2px,3px);box-shadow:inset 0 -3px 0 var(--cream-lo),1px 1px 0 var(--cel-ink)}
+@media (hover:hover){.rbtn:hover{transform:translate(-1px,-1px);box-shadow:inset 0 -5px 0 var(--cream-lo),4px 6px 0 var(--cel-ink)}.rbtn:active{transform:translate(2px,3px)}}
+.rbtn:focus{outline:none}
+html.kbd .rbtn:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+.bulb{background:#FFD84A;box-shadow:inset 0 -5px 0 #E0A92B,3px 4px 0 var(--cel-ink)}
+@media (hover:hover){.bulb:hover{box-shadow:inset 0 -5px 0 #E0A92B,4px 6px 0 var(--cel-ink)}}
+.bulb:active{box-shadow:inset 0 -3px 0 #E0A92B,1px 1px 0 var(--cel-ink)}
+.bulb[aria-expanded="true"]{background:#FFD84A;color:var(--cel-ink)}
+.bulb[aria-expanded="true"] svg{stroke:var(--cel-ink)}
+.bulb-dot{position:absolute;right:-5px;top:-5px;width:15px;height:15px;border-radius:50%;background:#E5483E;border:3px solid var(--cel-ink)}
+
+/* hint bubble: anchored to the bulb (its tail points at the bulb's centre) */
+.goal{position:absolute;z-index:13;top:calc(var(--rb) + 20px);right:0;width:min(300px,calc(100vw - var(--hud-l) - var(--hud-r)));
+  padding:10px 48px 14px 14px;border-radius:16px;background:var(--cream);border:3px solid var(--cel-ink);
+  box-shadow:inset 0 -5px 0 var(--cream-lo),4px 5px 0 var(--cel-ink);animation:goalIn .22s var(--ease)}
+.goal::before{content:"";position:absolute;right:calc(var(--rb) + var(--rgap) + var(--rb) / 2 - 11px);top:-13px;width:20px;height:20px;background:var(--cream);
+  border:3px solid var(--cel-ink);border-right:0;border-bottom:0;transform:rotate(45deg);border-radius:4px 0 0 0}
+@keyframes goalIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.goal-head{position:relative;margin:0 0 6px;font:700 11px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:#7A5C00}
+.goal-text{position:relative;margin:0;font:600 15px/1.35 var(--f-body);text-wrap:pretty;color:var(--cel-ink)}
+.goal-text b{color:var(--cel-blue-lo)}
+.goal-text kbd{background:var(--cel-blue);color:#fff;border:2px solid var(--cel-ink);border-radius:6px;padding:2px 6px;font-size:12px;box-shadow:0 2px 0 var(--cel-ink)}
+.goal-close{position:absolute;top:2px;right:2px;width:44px;height:44px;border:0;border-radius:50%;background:transparent;display:grid;place-items:center;color:var(--cel-ink)}
+.goal-close svg{width:16px;height:16px;stroke-width:2.2}
+.goal-close:focus{outline:none}
+html.kbd .goal-close:focus-visible{outline:3px solid var(--cel-ink);outline-offset:-4px}
+
+/* menu popover: the four old buttons as 48px rows */
+.menu{position:absolute;z-index:14;top:calc(var(--rb) + 20px);right:0;min-width:224px;padding:6px 6px 10px;border-radius:16px;background:var(--cream);border:3px solid var(--cel-ink);
+  box-shadow:inset 0 -5px 0 var(--cream-lo),4px 5px 0 var(--cel-ink);animation:goalIn .22s var(--ease)}
+.menu-item{width:100%;min-height:48px;display:flex;align-items:center;gap:12px;padding:0 12px;border:0;border-radius:10px;background:transparent;color:var(--cel-ink);text-align:left;font:700 16px/1 var(--f-body);-webkit-tap-highlight-color:transparent}
+.menu-item svg{flex:none;width:22px;height:22px;stroke:var(--cel-ink);stroke-width:2}
+.menu-item .mi-t{flex:1}
+.menu-item kbd{background:var(--cel-ink);color:var(--cream);font-size:12px;padding:4px 7px}
+.menu-item .mi-state{font:700 12px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;border-radius:999px;background:var(--cel-ink);color:var(--cream)}
+.sound-btn .mi-state::after{content:"On"}
+.sound-btn.is-muted .mi-state::after{content:"Off"}
+.sound-btn.is-muted .mi-state{background:var(--socket);color:var(--cel-ink)}
+.sound-btn .snd-off, .sound-btn.is-muted .snd-on{display:none}
+.sound-btn.is-muted .snd-off{display:inline}
+.menu-item:focus{outline:none}
+html.kbd .menu-item:focus-visible{outline:3px solid var(--cel-ink);outline-offset:-3px;background:#fff}
+@media (hover:hover){.menu-item:hover{background:#fff}}
+.menu-item:active{background:var(--cream-lo)}
+.menu-item[aria-current="true"]{background:#fff}
+
+/* the dock: count pill + nine coins. Empty socket until found; found = the project's own two tones */
+.hud-bottom{position:fixed;z-index:10;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:0 var(--hud-r) var(--hud-b) var(--hud-l);pointer-events:none}
+.dock{pointer-events:auto;display:flex;align-items:center;gap:14px;padding:10px 16px 14px 12px;border-radius:999px;background:var(--cream);border:3px solid var(--cel-ink);
+  box-shadow:inset 0 -6px 0 var(--cream-lo),4px 6px 0 var(--cel-ink)}
+.count{margin:0;display:flex;align-items:baseline;gap:3px;font:800 20px/1 var(--f-display);letter-spacing:-.01em;background:var(--cel-ink);color:var(--cream);border-radius:999px;padding:8px 13px 9px;white-space:nowrap}
+.count b{font-weight:800}
+.count em{font-style:normal;font-weight:500;font-size:15px;opacity:.8;margin:0 2px}
+.row{display:flex;gap:8px;list-style:none;margin:0;padding:0}
+.tok{position:relative;flex:none;width:var(--tok);height:var(--tok);padding:0;border-radius:50%;border:3px solid var(--cel-ink);display:grid;place-items:center;color:var(--cel-ink);
+  transition:transform .12s var(--ease);-webkit-tap-highlight-color:transparent}
+.tok svg{width:62%;height:62%;stroke:var(--cel-ink);stroke-width:2;transition:transform .5s var(--ease)}
+.tok.empty{background:var(--socket);box-shadow:inset 0 5px 0 var(--socket-lo)}
+.tok.empty svg{stroke:#8D845F;stroke-width:1.8;margin-top:2px}
+.tok.found{background:var(--c);box-shadow:inset 0 -6px 0 var(--lo),0 3px 0 var(--cel-ink)}
+.tok.found svg{margin-top:-2px}
+.tok.found::after{content:"";position:absolute;left:18%;top:12%;width:26%;height:14%;border-radius:999px;background:rgba(255,255,255,.55);transform:rotate(-30deg)}
+.tok.pop svg{transform:scale(1.5)}
+.tok.here{transform:translateY(-5px)}
+.tok.here::before{content:"";position:absolute;bottom:-12px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:var(--cel-ink)}
+@media (hover:hover){.tok:hover{transform:translateY(-3px)}.tok.here:hover{transform:translateY(-7px)}}
+.tok:focus{outline:none}
+html.kbd .tok:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px;transform:translateY(-3px)}
+/* coin name: ink tip above the dock, placed by ui.js (placeTip) so it stays on screen */
+.glyph-tip{position:absolute;left:var(--tx,0px);bottom:calc(100% + var(--tb,0px) + 14px);transform:translateY(4px);padding:8px 11px 9px;border-radius:10px;background:var(--cel-ink);color:var(--cream);
+  font:700 13px/1.15 var(--f-body);white-space:nowrap;text-align:left;pointer-events:none;opacity:0;transition:opacity .2s var(--ease),transform .2s var(--ease)}
+.glyph-tip::after{content:"";position:absolute;left:var(--ax,20px);top:100%;margin-left:-6px;border:6px solid transparent;border-top-color:var(--cel-ink)}
+.glyph-tip b{display:block;font:700 15px/1.1 var(--f-display);letter-spacing:-.01em}
+.glyph-tip small{display:block;margin-top:3px;font:600 11px/1 var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:#C7C8C2}
+.glyph:focus-visible .glyph-tip,.glyph.tip .glyph-tip{opacity:1;transform:none}
+@media (hover:hover){.glyph:hover .glyph-tip{opacity:1;transform:none}}
+.hud-bottom:has(.glyph:is(.tip,:hover,:focus-visible)){z-index:13}
+/* one popover at a time: a coin's name, the hint bubble and the menu never share the screen */
+body:has(.glyph:is(.tip,:focus-visible)) :is(.hint,.prompt){opacity:0 !important;visibility:hidden}
+@media (hover:hover){body:has(.glyph:hover) :is(.hint,.prompt){opacity:0 !important;visibility:hidden}}
+body:has(#goal:not([hidden])) .glyph-tip, body:has(#menu:not([hidden])) .glyph-tip{opacity:0 !important}
+
+/* Say hi: at 9 / 9 it joins the dock as a blue cel button, always visible (Escape on the card never removes it) */
+.say-hi{display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:0 20px 3px;border:3px solid var(--cel-ink);border-radius:999px;background:var(--cel-blue);color:#fff;
+  font:800 19px/1 var(--f-display);letter-spacing:-.005em;text-shadow:0 2px 0 var(--cel-blue-lo);box-shadow:inset 0 -6px 0 var(--cel-blue-lo),0 4px 0 var(--cel-ink);
+  transition:transform .12s var(--ease),box-shadow .12s var(--ease);-webkit-tap-highlight-color:transparent}
+.say-hi svg{width:18px;height:18px;stroke:#fff;stroke-width:2.6}
+@media (hover:hover){.say-hi:hover{transform:translate(-1px,-1px)}}
+.say-hi:active{transform:translate(1px,3px);box-shadow:inset 0 -3px 0 var(--cel-blue-lo),0 1px 0 var(--cel-ink)}
+.say-hi:focus{outline:none}
+html.kbd .say-hi:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+.say-hi.nudge{animation:sayNudge .6s var(--ease) 3}
+@keyframes sayNudge{0%,100%{transform:none}35%{transform:translateY(-8px)}65%{transform:translateY(0)}}
+
+/* prompt + controls hint share ONE slot above the dock; the prompt wins, so they never stack */
+.hint,.prompt{position:fixed;left:50%;bottom:calc(var(--hud-b) + 96px);transform:translateX(-50%);z-index:12}
+.hint{display:flex;align-items:center;gap:14px;padding:12px 18px 14px;border-radius:999px;background:var(--cel-ink);color:var(--cream);font:600 14px/1.3 var(--f-body);white-space:nowrap;
+  border:3px solid var(--cel-ink);box-shadow:3px 4px 0 rgba(30,31,38,.35);opacity:0;transition:opacity .5s var(--ease);pointer-events:none}
+.hint.show{opacity:1}
+.hint kbd{background:var(--cream);color:var(--cel-ink)}
+body:has(.prompt:not([hidden])) .hint{opacity:0}
+.prompt{display:flex;align-items:center;gap:10px;min-height:48px;padding:7px 18px 9px 8px;border-radius:999px;background:#fff;border:3px solid var(--cel-ink);color:var(--cel-ink);
+  box-shadow:inset 0 -5px 0 #E1E2DC,3px 4px 0 var(--cel-ink);font:700 16px/1.15 var(--f-body);white-space:nowrap;animation:promptRise .35s var(--ease);-webkit-tap-highlight-color:transparent}
+.prompt kbd{display:grid;place-items:center;width:30px;height:30px;padding:0;border-radius:50%;background:var(--cel-blue);color:#fff;border:2.5px solid var(--cel-ink);font:800 14px var(--f-display);box-shadow:inset 0 -3px 0 var(--cel-blue-lo)}
+.prompt .tap-ico{display:none;width:30px;height:30px;border-radius:50%;background:var(--cel-blue);color:#fff;border:2.5px solid var(--cel-ink);box-shadow:inset 0 -3px 0 var(--cel-blue-lo);place-items:center}
+.prompt .tap-ico svg{width:17px;height:17px;stroke:#fff;stroke-width:2}
+body.touch .prompt .tap-ico{display:grid}
+.prompt:focus{outline:none}
+html.kbd .prompt:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+@media (hover:hover){.prompt:hover{transform:translateX(-50%) translateY(-1px)}}
+@keyframes promptRise{from{opacity:0;margin-bottom:-8px}to{opacity:1;margin-bottom:0}}
+@media (min-width:900px){
+  /* with the project panel open the world's centre moves left (camera view offset), and so do the dock and the prompt slot */
+  body.panel-open .hud-bottom{right:calc(min(400px, 100vw) + var(--gut))}
+  body.panel-open .hint{left:calc((100vw - min(400px, 100vw) - var(--gut)) / 2)}
+}
+.hint,.prompt{transition:left .7s var(--ease), opacity .5s var(--ease)}
+
+/* phone (and landscape phone): corners are reserved for the stick (bottom-left) and jump (bottom-right), each --ctl-size.
+   The dock is ONE slim row of coins: each tap target is 33 x 44 (touching, never overlapping), the visible coin 28px.
+   It sits above the corners; the prompt slot sits above the dock; the centre stays free for drags. */
+@media (max-width:640px), (max-height:520px) and (pointer:coarse){
+  :root{--rb:44px;--rgap:10px;--tok:min(33px, calc((100vw - 54px) / 11));--dock-h:66px}
+  .wordmark{font-size:21px;line-height:44px;-webkit-text-stroke:5px var(--cel-ink)}
+  .hud-bottom{padding-bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px)}
+  .dock{flex-direction:column;gap:0;border-radius:22px;padding:8px 8px;position:relative}
+  .count{position:absolute;left:50%;top:-16px;transform:translateX(-50%);font-size:14px;padding:5px 11px 6px;border:2.5px solid var(--cream);box-shadow:0 0 0 2.5px var(--cel-ink)}
+  .count em{font-size:12px}
+  .row{flex-wrap:nowrap;justify-content:center;gap:0}
+  .tok{width:var(--tok);height:44px;border:0;border-radius:0;background:none !important;box-shadow:none !important;transform:none !important}
+  .tok::after{display:none}
+  .tok::before,.tok.here::before{content:"";display:block;position:absolute;left:50%;top:50%;bottom:auto;width:28px;height:28px;margin:0;transform:translate(-50%,-50%);border-radius:50%;
+    border:2.5px solid var(--cel-ink);background:var(--socket);box-shadow:inset 0 3px 0 var(--socket-lo)}
+  .tok.found::before,.tok.found.here::before{background:var(--c);box-shadow:inset 0 -3px 0 var(--lo),0 2px 0 var(--cel-ink)}
+  .tok svg{position:relative;width:15px;height:15px;margin-top:0}
+  .tok.found svg{margin-top:-1px}
+  html.kbd .tok:focus-visible{outline:3px solid var(--cel-ink);outline-offset:-3px}
+  .hint,.prompt{left:50%;bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px + var(--dock-h) + 24px);max-width:calc(100vw - var(--hud-l) - var(--hud-r));white-space:normal;text-align:left}
+  .hint{border-radius:16px;text-align:center}
+  .prompt{border-radius:24px}
+  .goal{width:min(272px,calc(100vw - var(--hud-l) - var(--hud-r)))}
+  .menu{min-width:min(240px,calc(100vw - var(--hud-l) - var(--hud-r)))}
+  .toast{top:calc(var(--hud-t) + 64px)}
+  .hint,.prompt{bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px + var(--dock-h) + 28px)}
+}
+/* wider than a phone in portrait (landscape): the slim dock fits between the corners, so it is not lifted */
+@media (min-width:521px) and (max-height:520px) and (pointer:coarse){
+  .hud-bottom{padding-bottom:var(--hud-b);padding-left:calc(var(--ctl-inset) + var(--ctl-size) + 12px);padding-right:calc(max(16px, env(safe-area-inset-right, 0px)) + var(--ctl-size) * 1.82 + 14px + 12px)}
+  .hint,.prompt{bottom:calc(var(--hud-b) + var(--dock-h) + 28px)}
+}
+@media (prefers-reduced-motion:reduce){
+  .goal,.menu,.prompt,.say-hi.nudge{animation:none !important}
+  .tok,.rbtn,.say-hi{transition:none !important}
+}
+
+/* ======================================================================================================
+   TOUCH CONTROLS, tablet (track I, I2): a touch screen wider than a phone but taller than a landscape phone (an iPad
+   in portrait) shows the full-width dock, which would run under the two corner buttons. Lift the dock, hint and
+   prompt above the corner squares exactly as the phone rules do. Desktop (no coarse pointer) is untouched. */
+@media (min-width:641px) and (min-height:521px) and (pointer:coarse){
+  :root{--dock-h:84px}
+  body.touch .hud-bottom{padding-bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px)}
+  body.touch .hint, body.touch .prompt{bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px + var(--dock-h) + 20px)}
+  body.touch:has(.dock.done) :is(.hint,.prompt){bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px + var(--dock-h) + 20px + 56px)}
+}
+/* ====================================================================================================== */
+
+/* ---- UB: the dock fades after ~4 s idle (ui.js wakeDock); faded coins are not tappable. The prompt and Say hi never fade. */
+.dock{transition:opacity .6s var(--ease),background-color .6s var(--ease),border-color .6s var(--ease),box-shadow .6s var(--ease)}
+body.dock-idle .dock:not(.done){opacity:0;pointer-events:none}
+body.dock-idle .dock:not(.done) *{pointer-events:none}
+.dock .count,.dock .row{transition:opacity .6s var(--ease)}
+@media (prefers-reduced-motion:reduce){.dock,.dock .count,.dock .row{transition:none !important}}
+
+/* ======================================================================================================
+   UB phase 2: every other surface in direction C. Cream surface, 3px navy ink outline, hard ink drop,
+   Bricolage / Instrument Sans, 44px targets, :focus-visible, reduced motion, safe areas. (Overrides the older
+   rules above on purpose; the board map's own stage/pin rules from boardmap.js are NOT restyled here.) */
+
+/* the controls hint: one slim cream pill in the prompt slot (shown once, first visit, ~6 s; ui.js hint()) */
+.hint{background:var(--cream);color:var(--cel-ink);border:3px solid var(--cel-ink);box-shadow:inset 0 -4px 0 var(--cream-lo),3px 4px 0 var(--cel-ink);padding:8px 16px 11px;font:700 14px/1.3 var(--f-body)}
+.hint kbd{background:var(--cel-ink);color:var(--cream);border-radius:6px;padding:4px 7px;font-size:12px}
+
+/* dock at N / N: it morphs into the Say hi bar and stays (never fades, never lost to Escape) */
+.fin-title{display:none;margin:0}
+.dock.done{display:grid;grid-template-columns:auto auto;grid-template-areas:"t hi" "r hi";align-items:center;gap:8px 22px;padding:10px 12px 14px 22px}
+.dock.done .count{display:none}
+.dock.done .fin-title{display:block;grid-area:t;font:800 19px/1 var(--f-display);letter-spacing:-.01em;color:var(--cel-ink)}
+.dock.done .row{grid-area:r}
+.dock.done .say-hi{grid-area:hi;min-height:56px;padding:0 28px 3px;font-size:22px;gap:10px}
+.dock.done .say-hi svg{width:20px;height:20px}
+@media (max-width:640px), (max-height:520px) and (pointer:coarse){
+  /* every project found: the dock stays one slim row; "Say hello" is its own pill 10px above it, nothing touching */
+  .dock.done{display:flex;flex-direction:column;gap:0;padding:8px 8px;border-radius:22px;position:relative}
+  .dock.done .fin-title{display:none}
+  .dock.done .say-hi{position:absolute;left:50%;top:-51px;transform:translateX(-50%);width:auto;margin:0;min-height:38px;padding:0 16px 2px;
+    font-size:15px;gap:6px;border-width:2.5px;white-space:nowrap}
+  .dock.done .say-hi svg{width:15px;height:15px}
+  .dock.done .say-hi:active{transform:translate(-50%,2px)}
+  @media (hover:hover){.dock.done .say-hi:hover{transform:translate(calc(-50% - 1px),-1px)}}
+  body:has(.dock.done) :is(.hint,.prompt){bottom:calc(var(--ctl-bottom) + var(--ctl-size) + 16px + var(--dock-h) + 60px)}
+}
+
+/* shared: close button, chips, buttons */
+.panel-close{top:10px;right:10px;width:44px;height:44px;border:3px solid var(--cel-ink);background:var(--cream);box-shadow:inset 0 -4px 0 var(--cream-lo),2px 3px 0 var(--cel-ink);color:var(--cel-ink);transition:transform .12s var(--ease)}
+.panel-close svg{width:18px;height:18px;stroke:var(--cel-ink);stroke-width:2.4}
+.panel-close:focus{outline:none}
+html.kbd .panel-close:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+@media (hover:hover){.panel-close:hover{transform:translate(-1px,-1px)}}
+.panel-close:active{transform:translate(2px,3px);box-shadow:none}
+.chip{min-height:44px;padding:0 16px 3px;border:3px solid var(--cel-ink);border-radius:999px;background:#fff;color:var(--cel-ink);font:700 14px/1 var(--f-body);box-shadow:inset 0 -4px 0 #E1E2DC,2px 3px 0 var(--cel-ink);justify-content:center;transition:transform .12s var(--ease)}
+.chip:focus{outline:none}
+html.kbd .chip:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+@media (hover:hover){.chip:hover{transform:translate(-1px,-1px)}}
+.chip:active{transform:translate(2px,3px);box-shadow:inset 0 -2px 0 #E1E2DC,0 0 0 var(--cel-ink)}
+.chip[aria-pressed="true"]{background:var(--cel-blue);color:#fff;text-shadow:0 2px 0 var(--cel-blue-lo);box-shadow:inset 0 -4px 0 var(--cel-blue-lo),2px 3px 0 var(--cel-ink)}
+.chip-ink{background:var(--cel-ink);color:var(--cream);box-shadow:inset 0 -4px 0 #000,2px 3px 0 rgba(30,31,38,.35)}
+.chip-ink kbd{background:var(--cream);color:var(--cel-ink)}
+.btn-cel{min-height:48px}
+/* (orchestrator 2026-11-04) no ring on .btn-cel: round 5 approved, two-tone, no ring; keyboard focus = html.kbd thicker ink (line ~71) */
+
+/* focus bar (mini-games, kiosks): a cream pill */
+.focusbar{padding:8px 8px 10px;gap:8px;border:3px solid var(--cel-ink);background:var(--cream);backdrop-filter:none;-webkit-backdrop-filter:none;
+  box-shadow:inset 0 -5px 0 var(--cream-lo),4px 5px 0 var(--cel-ink);bottom:var(--hud-b);max-width:calc(100vw - var(--hud-l) - var(--hud-r))}
+.focus-title{font:800 17px/1 var(--f-display);letter-spacing:-.01em;color:var(--cel-ink)}
+.focus-status{font:600 13px/1.2 var(--f-body);color:var(--cel-ink)}
+
+/* toast */
+.toast{background:var(--cream);color:var(--cel-ink);border:3px solid var(--cel-ink);box-shadow:inset 0 -4px 0 var(--cream-lo),4px 5px 0 var(--cel-ink);border-radius:18px;padding:10px 18px 13px;font:600 14px/1.35 var(--f-body)}
+.toast b{color:var(--cel-blue-lo)}
+.toast svg{stroke:var(--cel-ink);stroke-width:2}
+
+/* project panel and photo booth */
+.panel{border:3px solid var(--cel-ink);border-radius:20px;background:var(--cream);box-shadow:inset 0 -6px 0 var(--cream-lo),6px 8px 0 var(--cel-ink);top:var(--hud-t);right:var(--hud-r);bottom:var(--hud-b)}
+/* orchestrator fix 2026-11-04: a closed panel must be fully gone (it peeked over the mobile stick/interact), and the
+   phone layout keeps its bottom sheet (top:auto) instead of the desktop top/bottom inset above */
+.panel:not(.open){visibility:hidden;transition:transform .7s var(--ease),visibility 0s linear .7s}
+.panel.open{visibility:visible;transition:transform .7s var(--ease),visibility 0s}
+@media (max-width:640px){.panel{top:auto}}
+.panel-shot{margin:0;border-bottom:3px solid var(--cel-ink);background:var(--cel-ink)}
+.panel-meta{font:700 11px/1.3 var(--f-body);letter-spacing:.12em;color:#6A5F3A}
+.panel h2{font:800 34px/1 var(--f-display);letter-spacing:-.025em;color:var(--cel-ink)}
+.panel-myth{font:600 18px/1.3 var(--f-body);font-style:normal;color:var(--cel-ink)}
+.panel-desc{color:#3F4048}
+.tags li{border:2.5px solid var(--cel-ink);box-shadow:none;background:#fff;font:700 12px/1 var(--f-body);padding:6px 10px 7px}
+.booth-h{font:800 15px/1 var(--f-display)}
+.swatch{width:44px;height:44px;border:3px solid var(--cel-ink);box-shadow:inset 0 -4px 0 rgba(30,31,38,.22),2px 3px 0 var(--cel-ink);background:var(--sw)}
+.swatch:focus{outline:none}
+html.kbd .swatch:focus-visible{outline:3px solid var(--cel-ink);outline-offset:3px}
+.swatch[aria-pressed="true"]{box-shadow:0 0 0 3px var(--cream),0 0 0 6px var(--cel-ink)}
+.booth-row .chip{min-height:44px}
+@media (max-width:640px){.panel{left:var(--hud-l)}}
+
+/* map overlay: frame, close button, legend (the board and its pins are boardmap.js's own) */
+.map{background:rgba(244,238,220,.62)}
+.map-card{border:3px solid var(--cel-ink);border-radius:20px;background:var(--cream);box-shadow:inset 0 -6px 0 var(--cream-lo),6px 8px 0 var(--cel-ink);padding:22px 22px 18px}
+.map-head{padding-right:56px}
+.map-head h2{font:800 28px/1 var(--f-display);letter-spacing:-.025em;color:var(--cel-ink)}
+.map-head p{font:600 14px/1.35 var(--f-body);color:#3F4048}
+.map-legend{font:700 12px/1 var(--f-body);color:var(--cel-ink);gap:8px 16px;margin-top:12px}
+.map-legend li{display:flex;align-items:center}
+
+/* finale card */
+.finale{background:rgba(244,238,220,.62)}
+.finale-card{border:3px solid var(--cel-ink);border-radius:22px;background:var(--cream);box-shadow:inset 0 -6px 0 var(--cream-lo),6px 8px 0 var(--cel-ink)}
+.finale-glyphs{gap:6px}
+.finale-glyphs li{width:34px;height:34px;border-radius:50%;border:3px solid var(--cel-ink);background:var(--c,#6A6AFF);box-shadow:inset 0 -4px 0 var(--lo,#3030C8),0 2px 0 var(--cel-ink);color:var(--cel-ink)}
+.finale-glyphs svg{width:62%;height:62%;stroke:var(--cel-ink);stroke-width:2}
+.finale h2{font:800 31px/1.02 var(--f-display);letter-spacing:-.03em;color:var(--cel-ink)}
+.finale-text{color:#3F4048;font-weight:500}
+.finale-stay{min-height:44px;color:var(--cel-ink);font-weight:700}
+@media (max-width:640px){.finale-glyphs li{width:28px;height:28px;border-width:2.5px}}
+
+/* intro: copy and extruded headline untouched; type and buttons aligned to C */
+.eyebrow{display:inline-block;padding:6px 12px 7px;border:3px solid var(--cel-ink);border-radius:999px;background:var(--cream);color:var(--cel-ink);font:800 12px/1 var(--f-body);letter-spacing:.12em;box-shadow:2px 3px 0 var(--cel-ink)}
+.intro-tag{color:#2C2D34;font-weight:500}
+/* no wash behind the intro any more: the tagline and the load line sit on cream cel chips, like the eyebrow, so they read over the planet */
+.intro-tag{display:inline-block;max-width:34em;padding:12px 16px 13px;border:3px solid var(--cel-ink);border-radius:16px;background:var(--cream);box-shadow:3px 4px 0 var(--cel-ink);line-height:1.4}
+.intro .loadnote{display:inline-block;padding:5px 10px 6px;border:2px solid var(--cel-ink);border-radius:999px;background:var(--cream);color:var(--cel-ink)}
+/* planet hero (2026-11-08): the name and the line up top over open sky, the planet alone in the middle (main.js backs the intro
+   lens off for it), the load line and the buttons at the foot; nothing sits on the 3D */
+#intro{place-items:stretch;padding:max(clamp(22px,5vh,52px), env(safe-area-inset-top, 0px)) var(--hud-r) max(clamp(22px,5vh,48px), env(safe-area-inset-bottom, 0px)) var(--hud-l)}
+#intro .intro-inner{max-width:none;height:100%;display:flex;flex-direction:column;align-items:center;text-align:center}
+#intro .intro-inner{padding-top:var(--hero-push,0px)}   /* set by main.js heroLayout(): equal space above and below the planet */
+#intro .eyebrow{margin:0 0 14px}
+#intro .intro-name{font-size:clamp(44px,6.4vw,84px);margin:0}
+#intro .intro-name svg{margin:0 auto}
+#intro .intro-tag{display:block;max-width:none;margin:14px 0 0;padding:0;border:0;background:none;box-shadow:none;font-size:clamp(15px,1.5vw,18px);line-height:1.45;color:#2C2D34;text-shadow:0 0 6px rgba(246,243,232,.95),0 0 2px rgba(246,243,232,.95)}
+#intro .loadbar{margin-top:auto;width:min(300px,70vw)}
+#intro .loadnote{margin:12px 0 16px}
+#intro .intro-actions{justify-content:center}
+@media (max-width:640px){
+  #intro .intro-name{font-size:calc((100vw - 2 * var(--gut) - 16px) / 4.7)}
+  #intro .eyebrow{font-size:10.5px}
+  #intro .intro-tag{max-width:40ch}
+  #intro .br-wide{display:none}
+}
+.loadbar{height:14px;border:3px solid var(--cel-ink);border-radius:999px;background:var(--cream);max-width:420px}
+.loadbar span{background:var(--cel-blue);border-radius:999px;box-shadow:inset 0 -3px 0 var(--cel-blue-lo)}
+.loadnote{color:#3F4048;font-weight:600}
+.intro-actions .btn-cel{min-height:52px}
+
+@media (prefers-reduced-motion:reduce){.panel,.finale-card,.toast,.hint,.focusbar{transition-duration:.01ms !important}.chip,.panel-close{transition:none !important}}
+/* the booth panel sits where the project panel does: the dock and the prompt slot step left of it too */
+@media (min-width:900px){
+  body:has(#booth[aria-hidden="false"]) .hud-bottom{right:calc(min(400px, 100vw) + var(--gut))}
+  body:has(#booth[aria-hidden="false"]) .hint{left:calc((100vw - min(400px, 100vw) - var(--gut)) / 2)}
+}
+
+/* final-gate fixes (UB): the panel and booth start below the top bar on desktop, so the bulb and menu stay clear of them;
+   the first-visit key hint stays hidden while a panel, the map, the booth or the finale is open; no pulse ring on the bulb */
+@media (min-width:641px){.panel{top:calc(var(--hud-t) + var(--rb) + 16px)}}
+body.panel-open .hint, body:has(.map.open) .hint, body:has(#booth[aria-hidden="false"]) .hint, body:has(.finale.open) .hint{opacity:0 !important;visibility:hidden}
+
+/* U4: on desktop and tablet the dock is quiet (small coins, thin low-contrast tray, no heavy drop, close to the edge) and the
+   prompt slot is computed from the dock's real height (ui.js sets --dock-live) with >=20px clearance, so they never overlap.
+   Phones (and landscape phones) keep their approved layout: this block excludes them. */
+@media (min-width:641px) and (not ((max-height:520px) and (pointer:coarse))){
+  :root{--tok:30px}
+  .hud-bottom{padding-bottom:max(10px, env(safe-area-inset-bottom, 0px))}
+  .dock{gap:10px;padding:6px 10px 8px 8px;border-width:2px;border-color:rgba(30,31,38,.6);background:rgba(244,238,220,.9);box-shadow:inset 0 -3px 0 var(--cream-lo)}
+  .dock.done{padding:10px 12px 14px 22px;border-width:3px;border-color:var(--cel-ink);background:var(--cream);box-shadow:inset 0 -6px 0 var(--cream-lo),4px 6px 0 var(--cel-ink)}
+  .count{font-size:14px;padding:5px 10px 6px;background:rgba(30,31,38,.72)}
+  .count em{font-size:12px}
+  .row{gap:5px}
+  .tok{border-width:2.5px}
+  .tok.found{box-shadow:inset 0 -4px 0 var(--lo),0 1px 0 rgba(30,31,38,.6)}
+  .tok.empty{box-shadow:inset 0 3px 0 var(--socket-lo)}
+  .tok.here{transform:translateY(-3px)}
+  .tok.here::before{bottom:-8px}
+  .hint,.prompt{bottom:calc(max(10px, env(safe-area-inset-bottom, 0px)) + var(--dock-live, 54px) + 24px)}
+}
+/* touch (iPad): keep a 44px-tall hit area around each small coin */
+@media (min-width:641px) and (not ((max-height:520px) and (pointer:coarse))) and (pointer:coarse){
+  .row{gap:0}
+  .tok{width:36px;height:44px;border:0;border-radius:0;background:none !important;box-shadow:none !important;transform:none !important}
+  .tok::after{display:none}
+  .tok::before,.tok.here::before{content:"";display:block;position:absolute;left:50%;top:50%;bottom:auto;width:30px;height:30px;margin:0;transform:translate(-50%,-50%);border-radius:50%;
+    border:2.5px solid var(--cel-ink);background:var(--socket);box-shadow:inset 0 3px 0 var(--socket-lo)}
+  .tok.found::before,.tok.found.here::before{background:var(--c);box-shadow:inset 0 -4px 0 var(--lo),0 1px 0 rgba(30,31,38,.6)}
+  .tok svg{position:relative;width:16px;height:16px;margin-top:0}
+  html.kbd .tok:focus-visible{outline:3px solid var(--cel-ink);outline-offset:-3px}
+  .dock.done .tok{margin:0}
+}
+
+/* ==== orchestrator 2026-11-04, the user: "get rid of that line everywhere, it's hideous" + "cursor should just do a press".
+   No focus ring/outline anywhere for mouse and touch. Keyboard users (html.kbd, set on Tab) get the round-5 treatment:
+   a thicker INK edge, never a blue ring. .btn-cel keeps its own html.kbd box-shadow (line ~71). ==== */
+:focus,:focus-visible{outline:none !important}
+html.kbd :focus-visible:not(.btn-cel):not(canvas){outline:3px solid var(--cel-ink, #1E1F26) !important;outline-offset:2px}
+/* while the mouse is held, the cursor's face sinks into its extrusion (press-32/64.png); same hotspot 6 3 */
+html:active,html:active *{cursor:var(--cur-press, var(--cur-pt, pointer)) !important}
+
+/* Pin Art how-to card (games/pin-art.js): shown on stepping up to the pinscreen, tucks away once you have pushed some pins */
+.howto{position:fixed;z-index:11;left:50%;top:calc(var(--hud-t) + 58px);transform:translate(-50%,-8px);opacity:0;pointer-events:none;
+  width:max-content;max-width:min(400px,calc(100vw - 2 * var(--gut)));padding:12px 16px 14px;border-radius:18px;background:var(--cream);color:var(--cel-ink);
+  border:3px solid var(--cel-ink);box-shadow:inset 0 -4px 0 var(--cream-lo),4px 5px 0 var(--cel-ink);transition:opacity .4s var(--ease),transform .4s var(--ease)}
+.howto.show{opacity:1;transform:translate(-50%,0)}
+.howto-h{display:flex;align-items:center;gap:10px;margin:0 0 6px;font:800 16px/1.1 var(--f-display);letter-spacing:-.01em}
+.howto-h svg{width:30px;height:30px;flex:none;fill:none;stroke:var(--cel-ink);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;animation:howto-drag 1.8s var(--ease) infinite}
+@keyframes howto-drag{0%,100%{transform:translateX(-4px)}50%{transform:translateX(5px)}}
+.howto ol{margin:0;padding:0 0 0 20px;font:600 13.5px/1.4 var(--f-body)}
+.howto li+li{margin-top:3px}
+.howto b{color:var(--cel-blue-lo)}
+@media (max-width:600px){.howto{top:calc(var(--hud-t) + 50px);padding:10px 13px 12px}.howto ol{font-size:12.5px}.howto-h{font-size:15px}}
+
+/* ======================================================================================================
+   PHONE / TABLET TOUCH: "you are here" is a small dot under the coin (no ring); toasts stay compact under the header and,
+   like the prompt, step aside while the menu or the hint card is open.
+   LANDING: the whole intro is a drag surface for spinning the planet (main.js heroSpin). */
+@media (max-width:640px), (max-height:520px) and (pointer:coarse){
+  .tok.here::after{display:block;content:"";position:absolute;left:50%;top:calc(50% + 19px);width:6px;height:6px;transform:translateX(-50%);
+    border-radius:50%;background:var(--cel-ink)}
+  .toast,html body .toast.r7-radio-cap{top:calc(var(--hud-t) + 54px);padding:7px 12px 9px;font-size:13px;line-height:1.3;border-width:2.5px;border-radius:14px;
+    max-width:calc(100vw - 24px);box-shadow:inset 0 -3px 0 var(--cream-lo),3px 4px 0 var(--cel-ink)}
+  html body:has(#toast.show) .toast.r7-radio-cap{opacity:0 !important}
+  body:has(#menu:not([hidden])) :is(.toast,.prompt,.hint), body:has(#goal:not([hidden])) :is(.toast,.prompt,.hint){opacity:0 !important;visibility:hidden}
+}
+@media (min-width:521px) and (max-height:520px) and (pointer:coarse){
+  body:has(.dock.done) :is(.hint,.prompt){bottom:calc(var(--hud-b) + var(--dock-h) + 60px)}
+}
+@media (min-width:641px) and (not ((max-height:520px) and (pointer:coarse))) and (pointer:coarse){
+  .tok.here::after{display:block;content:"";position:absolute;left:50%;top:calc(50% + 20px);width:6px;height:6px;transform:translateX(-50%);
+    border-radius:50%;background:var(--cel-ink)}
+}
+#intro{touch-action:none}
+/* no double-tap zoom anywhere (pinch is blocked in index.html) */
+html{touch-action:manipulation}
+#intro.spinning{-webkit-user-select:none;user-select:none}
