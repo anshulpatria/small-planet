@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Small Planet · A 3D portfolio you can walk around · Anshul Patria</title>
+<meta name="description" content="A 3D portfolio you walk around instead of scroll. Anshul Patria's games, tools and creative-coding experiments live on a tiny cel-shaded Three.js planet.">
+<meta name="author" content="Anshul Patria">
+<meta name="keywords" content="3D portfolio, interactive portfolio, WebGL, Three.js, creative coding, cel shading, toon shader, game portfolio, character design, generative art, creative developer, designer developer, Anshul Patria">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="https://anshulpatria.github.io/small-planet/">
+<link rel="author" href="https://anshulpatria.github.io/">
+<!-- link previews (Open Graph, X/Twitter): Muzli, LinkedIn, Slack, WhatsApp and search all read these -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Small Planet">
+<meta property="og:title" content="Small Planet · A 3D portfolio you can walk around">
+<meta property="og:description" content="A 3D portfolio you walk around instead of scroll. Anshul Patria's games, tools and creative-coding experiments live on a tiny cel-shaded Three.js planet.">
+<meta property="og:url" content="https://anshulpatria.github.io/small-planet/">
+<meta property="og:image" content="https://anshulpatria.github.io/small-planet/assets/og/small-planet-og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="A tiny cel-shaded planet with a pin-art board on top, under the headline Games, Tools and Curious Experiments.">
+<meta property="og:locale" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Small Planet · A 3D portfolio you can walk around">
+<meta name="twitter:description" content="A 3D portfolio you walk around instead of scroll. Anshul Patria's games, tools and creative-coding experiments live on a tiny cel-shaded Three.js planet.">
+<meta name="twitter:image" content="https://anshulpatria.github.io/small-planet/assets/og/small-planet-og.jpg">
+<meta name="twitter:image:alt" content="A tiny cel-shaded planet with a pin-art board on top, under the headline Games, Tools and Curious Experiments.">
+<meta name="theme-color" content="#E4E5E0">
+<link rel="icon" href="favicon.svg?v=4" type="image/svg+xml">
+<link rel="icon" href="assets/icons/favicon-32.png?v=4" type="image/png" sizes="32x32">
+<link rel="icon" href="assets/icons/favicon-16.png?v=4" type="image/png" sizes="16x16">
+<link rel="icon" href="favicon.ico?v=4" sizes="any">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png?v=4">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,200..800&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=20261108-2229">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@graph": [
+  {
+   "@type": "WebSite",
+   "@id": "https://anshulpatria.github.io/small-planet/#site",
+   "url": "https://anshulpatria.github.io/small-planet/",
+   "name": "Small Planet",
+   "alternateName": "Small Planet by Anshul Patria",
+   "description": "A 3D portfolio you walk around instead of scroll. Anshul Patria's games, tools and creative-coding experiments live on a tiny cel-shaded Three.js planet.",
+   "inLanguage": "en",
+   "author": {
+    "@id": "https://anshulpatria.github.io/small-planet/#anshul"
+   },
+   "image": "https://anshulpatria.github.io/small-planet/assets/og/small-planet-og.jpg"
+  },
+  {
+   "@type": "Person",
+   "@id": "https://anshulpatria.github.io/small-planet/#anshul",
+   "name": "Anshul Patria",
+   "url": "https://anshulpatria.github.io/",
+   "jobTitle": "Designer and creative developer",
+   "sameAs": [
+    "https://github.com/anshulpatria",
+    "https://anshulpatria.github.io/"
+   ],
+   "knowsAbout": [
+    "Three.js",
+    "WebGL",
+    "Creative coding",
+    "Interaction design",
+    "Generative art",
+    "Character design"
+   ]
+  },
+  {
+   "@type": "CreativeWork",
+   "@id": "https://anshulpatria.github.io/small-planet/#work",
+   "name": "Small Planet",
+   "url": "https://anshulpatria.github.io/small-planet/",
+   "creator": {
+    "@id": "https://anshulpatria.github.io/small-planet/#anshul"
+   },
+   "genre": [
+    "Interactive portfolio",
+    "3D website",
+    "Browser game"
+   ],
+   "keywords": "3D portfolio, WebGL, Three.js, cel shading, toon shader, creative coding, character design, interactive map, browser game",
+   "image": "https://anshulpatria.github.io/small-planet/assets/og/small-planet-og.jpg",
+   "description": "A walkable cel-shaded planet built in Three.js. Ten projects stand on it, five creatures each have a trick and a babble voice, a board-game map flips like a coin to show each hemisphere, and butterflies, badges and three secrets reward exploring. A plain project list is one click away.",
+   "hasPart": [
+    {
+     "@type": "CreativeWork",
+     "name": "Pin Art 3D",
+     "genre": "Toy",
+     "description": "A pinscreen driven by depth. Push the pins by hand or imprint a photograph, then relight it and orbit around.",
+     "url": "https://anshulpatria.github.io/3D-pin-art/"
+    },
+    {
+     "@type": "CreativeWork",
+     "name": "Gravity Pong",
+     "genre": "Game",
+     "description": "Pong with gravity wells in the court. Power shots, magnets, one or two players.",
+     "url": "https://anshulpatria.github.io/gravitypong/"
+    },
+    {
+     "@type": "CreativeWork",
+     "name": "Brand Studio",
+     "genre": "Tool",
+     "description": "Builds whole identity systems out of a metaball grid. Custom SVG and canvas renderers, exporting stills and video.",
+     "url": "https://anshulpatria.github.io/brandstudio/"
+    },
+    {
+     "@type": "CreativeWork",
+     "name": "Engraver",
+     "genre": "Tool",
+     "description": "Redraws any image as a grid of strokes. Set the density and the contrast, then export it as SVG, PNG or WebM.",
+     "url": "https://anshulpatria.github.io/linevisualiser/"
+    },
+    {
+     "@type": "CreativeWork",
+     "name": "Field",
+     "genre": "Catalog",
+     "description": "Twenty generative effects that follow the cursor. Open a tile, read how it works, turn the parameters, take the code.",
+     "url": "https://field-8yc.pages.dev/"
+    },
+    {
+     "@type": "CreativeWork",
+     "name": "GenAI After Hours",
+     "genre": "Deck",
+     "description": "Slides from a ninety minute session on building microsites with AI tools.",
+     "url": "https://anshulpatria.github.io/genaiafterhourspub/"
+    },
+    {
+     "@type": "CreativeWork",
+     "name": "Orchestrator",
+     "genre": "Video",
+     "description": "A generated film, assembled in under sixteen hours of prompting with Magnific.",
+     "url": "https://youtu.be/oySlLRl5EBI"
+    },
+    {
+     "@type": "CreativeWork",
+     "name": "The bracket does it again",
+     "genre": "Video",
+     "description": "A short film for the Live Slides training, on finding the story already sitting inside the most ordinary deck in the building.",
+     "url": "https://youtu.be/M1nIsHUE6dg"
+    },
+    {
+     "@type": "CreativeWork",
+     "name": "GitHub Portfolio",
+     "genre": "Site",
+     "description": "Tools, toys, games, workshop decks.",
+     "url": "https://anshulpatria.github.io"
+    },
+    {
+     "@type": "CreativeWork",
+     "name": "AI Momentum to Value",
+     "genre": "Report",
+     "description": "A hexagon-based interactive report for Google on Southeast Asia's path from AI momentum to value: 5 strategic moves for enterprises.",
+     "url": "https://sea-ai-maturity.bcg.com/"
+    }
+   ]
+  }
+ ]
+}
+</script>
+<!-- the first-paint module chain, fetched in parallel instead of as an import waterfall (tools/package-pages.sh tags these too) -->
+<link rel="modulepreload" href="vendor/three/build/three.module.js">
+<link rel="modulepreload" href="src/main.js?v=20261108-2229">
+<link rel="modulepreload" href="src/ui.js?v=20261108-2229">
+<link rel="modulepreload" href="src/projects.js?v=20261108-2229">
+<link rel="modulepreload" href="src/world.js?v=20261108-2229">
+<link rel="modulepreload" href="src/planet.js?v=20261108-2229">
+<link rel="modulepreload" href="src/player.js?v=20261108-2229">
+<link rel="modulepreload" href="src/camera.js?v=20261108-2229">
+<link rel="modulepreload" href="src/input.js?v=20261108-2229">
+<link rel="modulepreload" href="src/audio.js?v=20261108-2229">
+<link rel="modulepreload" href="src/sfx.js?v=20261108-2229">
+<link rel="modulepreload" href="src/sky.js?v=20261108-2229">
+<link rel="modulepreload" href="src/toon.js?v=20261108-2229">
+<script type="importmap">
+{ "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/": "./vendor/three/addons/",
+    "three-mesh-bvh": "./vendor/three-mesh-bvh/index.module.js"
+} }
+</script>
+</head>
+<body class="is-loading">
+<!-- keyboard focus styles show only after Tab, never for mouse, touch or the focus() on load -->
+<!-- the page never zooms: trackpad pinch (ctrl+wheel), Safari gesture pinch and two-finger touch pinch are swallowed here; the world's own wheel zoom on the canvas still runs (it only listens, never needs the page to scale) -->
+<script>(function(){var no=function(e){e.preventDefault()};addEventListener("wheel",function(e){if(e.ctrlKey)e.preventDefault()},{passive:false});["gesturestart","gesturechange","gestureend"].forEach(function(t){addEventListener(t,no,{passive:false})});addEventListener("touchmove",function(e){if(e.touches.length>1)e.preventDefault()},{passive:false});})();</script>
+<script>addEventListener("keydown",e=>{if(e.key==="Tab")document.documentElement.classList.add("kbd")},true);addEventListener("pointerdown",()=>document.documentElement.classList.remove("kbd"),true);</script>
+
+<canvas id="scene" aria-label="An explorable 3D planet of projects"></canvas>
+
+<!-- INTRO / LOADER -->
+<section id="intro" class="intro">
+  <div class="intro-inner">
+    <p class="eyebrow">A portfolio with legs. Yours, mostly.</p>
+    <h1 class="intro-name"><span class="intro-name-text">Anshul Patria</span><svg viewBox="0 0 460 90" aria-hidden="true" focusable="false">
+      <defs>
+        <text id="nm-t" x="0" y="78" font-size="100" letter-spacing="-2">Anshul Patria</text>
+        <g id="nm-1"><use href="#nm-t"/><use href="#nm-t" x=".22" y=".275"/></g>
+        <g id="nm-2"><use href="#nm-1"/><use href="#nm-1" x=".44" y=".55"/></g>
+        <g id="nm-3"><use href="#nm-2"/><use href="#nm-2" x=".88" y="1.1"/></g>
+        <g id="nm-4"><use href="#nm-3"/><use href="#nm-3" x="1.76" y="2.2"/></g>
+        <g id="nm-5"><use href="#nm-4"/><use href="#nm-4" x="3.52" y="4.4"/></g>
+      </defs>
+      <g class="nm-ink"><use href="#nm-5"/><use href="#nm-5" x="4" y="5"/></g>
+      <use class="nm-ext" href="#nm-5"/>
+      <use class="nm-face" href="#nm-t"/>
+    </svg></h1>
+    <p class="intro-tag">Part designer. Part developer. Full-time tinkerer.<br class="br-wide"> A collection of things I&rsquo;ve made, broken, rebuilt, and occasionally finished.</p>
+    <div class="loadbar" role="progressbar" aria-label="Loading the world" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="loadfill"></span></div>
+    <p id="loadnote" class="loadnote" role="status">Inflating planet. Please stand back…</p>
+    <div class="intro-actions">
+      <button id="enter" class="btn-cel" disabled>Enter the planet</button>
+      <button id="introList" class="btn-cel btn-cel-grey" data-mode="list">Skip the walking</button>
+    </div>
+  </div>
+</section>
+
+<!-- HUD (direction C, "Collector's dock", phase 1) -->
+<header class="hud-top">
+  <a class="wordmark" href="https://anshulpatria.github.io/" aria-label="Anshul Patria home">Anshul Patria</a>
+  <div class="hud-right">
+    <!-- the bulb: always there. Its bubble says what to do right now (a game's rules, the spot you stand at, else the goal) -->
+    <button id="goalBtn" class="rbtn bulb" type="button" aria-label="Hint" aria-expanded="false" aria-controls="goal" title="A little help">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 18h5M10 21h4M12 3a6 6 0 0 0-3.6 10.8c.7.6 1.1 1.3 1.1 2.2h5c0-.9.4-1.6 1.1-2.2A6 6 0 0 0 12 3Z"/></svg>
+      <i class="bulb-dot" aria-hidden="true" hidden></i>
+    </button>
+    <div id="goal" class="goal" role="region" aria-labelledby="goalHead" hidden>
+      <p id="goalHead" class="goal-head">A little help</p>
+      <p id="goalText" class="goal-text" aria-live="polite"></p>
+      <button id="goalClose" class="goal-close" type="button" aria-label="Close hint"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <button id="menuBtn" class="rbtn" type="button" aria-label="Menu" aria-expanded="false" aria-controls="menu" title="Menu">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>
+    </button>
+    <!-- the four old buttons, now menu rows: same ids, same handlers in main.js -->
+    <div id="menu" class="menu" hidden>
+      <button id="mapBtn" class="menu-item" type="button" aria-label="Open map">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14"/></svg><span class="mi-t">Map</span><kbd aria-hidden="true">M</kbd>
+      </button>
+      <button id="menuList" class="menu-item" type="button" data-mode="list">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span class="mi-t">All the projects</span>
+      </button>
+      <!-- ambient sound: off until the first click/tap/key (browsers block autoplay); the choice is remembered -->
+      <button id="soundBtn" class="menu-item sound-btn" type="button" aria-label="Ambient sound" aria-pressed="false" title="Sound on · click to mute">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path class="snd-on" d="M15.5 9.2a4 4 0 0 1 0 5.6M18 6.8a7.4 7.4 0 0 1 0 10.4"/><path class="snd-off" d="m16 9.5 5 5m0-5-5 5"/></svg><span class="mi-t">Sound</span><span class="mi-state" aria-hidden="true"></span>
+      </button>
+      <button id="boothBtn" class="menu-item booth-btn" type="button" aria-label="Blip makeover: customise Blip and take a photo" aria-controls="booth" title="Customise Blip · photo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3v10H4z"/><circle cx="12" cy="13.2" r="3.2"/></svg><span class="mi-t">Blip makeover</span>
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- the dock: one coin per project, in projects.js order, empty socket until found; tap a coin to go there -->
+<footer class="hud-bottom">
+  <nav id="dock" class="dock" aria-label="Projects discovered">
+    <p class="count" id="discLabel"><b id="discCount">0</b><em>of</em><span id="discTotal"></span><span class="sr-only"> projects discovered</span></p>
+    <p id="finTitle" class="fin-title"></p>
+    <ul id="glyphs" class="row"></ul>
+    <!-- shown once every project is found: reopens the finale card. Never hidden by Escape -->
+    <button id="sayHi" class="say-hi" type="button" aria-haspopup="dialog" aria-controls="finale" hidden>Say hello<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 17 17 7M9 7h8v8"/></svg></button>
+  </nav>
+</footer>
+
+<!-- the prompt and the controls hint share ONE slot above the dock; the prompt wins -->
+<div id="hint" class="hint" aria-live="polite"></div>
+<button id="prompt" class="prompt" type="button" hidden><kbd>E</kbd><span class="tap-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-.6a6 6 0 0 1-4.6-2.2L4.6 16a1.6 1.6 0 0 1 2.4-2l2 2"/></svg></span><span id="promptText">Interact</span></button>
+<span id="promptLive" class="sr-only" aria-live="polite"></span>
+<div id="toast" class="toast" aria-live="polite"></div>
+
+<!-- Focus-mode controls for installations -->
+<div id="focusbar" class="focusbar" hidden>
+  <span id="focusTitle" class="focus-title"></span>
+  <span id="focusStatus" class="focus-status" hidden></span>
+  <div id="focusTools" class="focus-tools"></div>
+  <button id="focusInfo" class="chip">About</button>
+  <button id="focusExit" class="chip chip-ink" aria-label="Leave (Esc)"><svg class="x" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7 7 17"/></svg>Leave <kbd>Esc</kbd></button>
+</div>
+
+<!-- photo booth + Blip customiser -->
+<aside id="booth" class="panel booth" aria-hidden="true" aria-labelledby="boothTitle" role="dialog">
+  <button class="panel-close" id="boothClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  <div class="panel-body">
+    <p class="panel-meta">Blip makeover</p>
+    <h2 id="boothTitle">Give Blip<br>a personality</h2>
+    <p class="panel-desc">Choose the outfit. Strike a pose. Take the evidence home.</p>
+    <h3 class="booth-h">Antenna</h3><div class="booth-row" data-opt="antenna"></div>
+    <h3 class="booth-h">Colour</h3><div class="booth-row" data-opt="colour"></div>
+    <h3 class="booth-h">Pattern</h3><div class="booth-row" data-opt="pattern"></div>
+    <button id="boothPhoto" class="btn-cel booth-photo" type="button">Capture this look</button>
+  </div>
+</aside>
+<!-- PROJECT PANEL -->
+<aside id="panel" class="panel" aria-hidden="true" aria-labelledby="panelName" role="dialog">
+  <button class="panel-close" id="panelClose" aria-label="Close">
+    <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+  </button>
+  <figure class="panel-shot"><img id="panelShot" alt=""></figure>
+  <div class="panel-body">
+    <p class="panel-meta"><span id="panelOrd"></span> · <span id="panelType"></span> · <span id="panelInput"></span></p>
+    <h2 id="panelName"></h2>
+    <p id="panelMyth" class="panel-myth"></p>
+    <p id="panelDesc" class="panel-desc"></p>
+    <ul id="panelTech" class="tags"></ul>
+    <a id="panelOpen" class="btn-cel" target="_blank" rel="noopener">Open project <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a>
+  </div>
+</aside>
+
+<!-- FINALE: every project discovered (ui.js opens it once, then from "Say hi") -->
+<section id="finale" class="finale" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="finaleHead" aria-describedby="finaleText">
+  <div class="finale-card">
+    <button class="panel-close" id="finaleClose" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <ul id="finaleGlyphs" class="finale-glyphs" aria-hidden="true"></ul>
+    <p id="finaleMeta" class="panel-meta">Every project discovered</p>
+    <h2 id="finaleHead">You found everything. Even the moon.</h2>
+    <p id="finaleText" class="finale-text">There are still secrets lurking around. Or we could make something together. Your move.</p>
+    <div class="finale-actions">
+      <a id="finaleLink" class="btn-cel" target="_blank" rel="noopener">Connect on LinkedIn <span aria-hidden="true">↗</span><span class="sr-only">(opens in a new tab)</span></a>
+      <button id="finaleStay" class="finale-stay" type="button">Hunt for secrets</button>
+    </div>
+  </div>
+</section>
+
+<!-- MAP -->
+<section id="map" class="map" aria-hidden="true" role="dialog" aria-label="World map">
+  <div class="map-card">
+    <div class="map-head">
+      <h2>Small Planet</h2>
+      <p>Pick a piece to teleport. Drag up or down to flip the planet. Geography is flexible here.</p>
+      <button class="panel-close" id="mapClose" aria-label="Close map"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    </div>
+    <div id="mapStage" class="map-stage"><canvas id="mapCanvas" aria-hidden="true"></canvas><div id="mapPins" class="map-pins"></div></div>
+    <ul id="mapLegend" class="map-legend"></ul>
+  </div>
+</section>
+
+<!-- PROJECT LIST (also the no-WebGL fallback) -->
+<section id="list" class="list" aria-hidden="true" role="region" aria-labelledby="listHead">
+  <div class="list-inner">
+    <div class="list-head">
+      <h2 id="listHead" tabindex="-1">Projects</h2>
+      <button class="btn btn-ghost" data-mode="world" id="listBack">Enter the planet</button>
+    </div>
+    <p id="fallbackNote" class="fallback-note" hidden>This device and the 3D planet aren’t getting along. Here’s every project, minus the walking.</p>
+    <div id="cards" class="cards"></div>
+  </div>
+</section>
+
+<!-- Touch controls -->
+<div id="stick" class="stick" aria-hidden="true"><div class="stick-knob"></div></div>
+<button id="actBtn" class="act-btn" type="button" aria-label="Interact" aria-disabled="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-.5a1.5 1.5 0 0 1 3 0V11m0-.5a1.5 1.5 0 0 1 3 0V15a6 6 0 0 1-6 6h-.6a6 6 0 0 1-4.6-2.2L4.6 16a1.6 1.6 0 0 1 2.4-2l2 2"/></svg></button>
+<!-- R7 B2: the touch jump button (additive: the stick and the interact button above keep their size and place). Always live, so it carries .on -->
+<button id="jumpBtn" class="act-btn jump-btn on" type="button" aria-label="Jump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V6M6 11.5 12 5.5l6 6"/></svg></button>
+
+<div id="fade" class="fade"></div>
+
+<!-- FILM PLAYER -->
+<section id="video" class="video" aria-hidden="true" role="dialog" aria-label="Film player">
+  <div class="video-card">
+    <button class="panel-close" id="videoClose" aria-label="Close film"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="video-frame"><iframe id="videoFrame" src="about:blank" title="Film" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe></div>
+    <p id="videoCaption" class="video-caption"></p>
+  </div>
+</section>
+
+<noscript>
+  <style>.intro{display:none}.list{opacity:1;pointer-events:auto;visibility:visible}</style>
+  <div style="padding:24px;max-width:720px">
+    <p>Small Planet needs JavaScript to draw the planet. Here is what lives on it.</p>
+    <h2>Small Planet: a 3D portfolio you can walk around</h2>
+    <p>Anshul Patria's games, tools and creative-coding experiments, placed on a tiny cel-shaded planet built in Three.js and WebGL. Walk between projects, talk to five odd locals with their own tricks and voices, flip a board-game map to see each hemisphere, and collect butterflies, badges and three secrets.</p>
+    <ul>
+      <li><a href="https://anshulpatria.github.io/3D-pin-art/">Pin Art 3D</a> (toy): A pinscreen driven by depth. Push the pins by hand or imprint a photograph, then relight it and orbit around.</li>
+      <li><a href="https://anshulpatria.github.io/gravitypong/">Gravity Pong</a> (game): Pong with gravity wells in the court. Power shots, magnets, one or two players.</li>
+      <li><a href="https://anshulpatria.github.io/brandstudio/">Brand Studio</a> (tool): Builds whole identity systems out of a metaball grid. Custom SVG and canvas renderers, exporting stills and video.</li>
+      <li><a href="https://anshulpatria.github.io/linevisualiser/">Engraver</a> (tool): Redraws any image as a grid of strokes. Set the density and the contrast, then export it as SVG, PNG or WebM.</li>
+      <li><a href="https://field-8yc.pages.dev/">Field</a> (catalog): Twenty generative effects that follow the cursor. Open a tile, read how it works, turn the parameters, take the code.</li>
+      <li><a href="https://anshulpatria.github.io/genaiafterhourspub/">GenAI After Hours</a> (deck): Slides from a ninety minute session on building microsites with AI tools.</li>
+      <li><a href="https://youtu.be/oySlLRl5EBI">Orchestrator</a> (video): A generated film, assembled in under sixteen hours of prompting with Magnific.</li>
+      <li><a href="https://youtu.be/M1nIsHUE6dg">The bracket does it again</a> (video): A short film for the Live Slides training, on finding the story already sitting inside the most ordinary deck in the building.</li>
+      <li><a href="https://anshulpatria.github.io">GitHub Portfolio</a> (site): Tools, toys, games, workshop decks.</li>
+      <li><a href="https://sea-ai-maturity.bcg.com/">AI Momentum to Value</a> (report): A hexagon-based interactive report for Google on Southeast Asia's path from AI momentum to value: 5 strategic moves for enterprises.</li>
+    </ul>
+    <p>More work at <a href="https://anshulpatria.github.io/">anshulpatria.github.io</a>.</p>
+  </div>
+</noscript>
+
+<script type="module" src="src/main.js?v=20261108-2229"></script>
+<!-- if the module never runs (no import maps, offline, a cache mismatch), the intro would wait forever: after 12 s the grey button becomes a plain way out -->
+<script>setTimeout(function(){if(window.__spBoot)return;var b=document.getElementById("introList"),n=document.getElementById("loadnote");if(n)n.textContent="The planet is stuck. The projects live on the main site.";if(b){b.textContent="Open the project list";b.onclick=function(){location.href="https://anshulpatria.github.io/"};}},12000);</script>
+</body>
+</html>
