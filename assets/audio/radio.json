@@ -1,0 +1,23 @@
+{
+ "version": 1,
+ "file": "radio.m4a",
+ "sampleRate": 48000,
+ "channels": 1,
+ "decoderOffsetSamples": 0,
+ "peak": 0.2678,
+ "variants": [
+  {
+   "start": 0.5,
+   "dur": 3.734187
+  },
+  {
+   "start": 4.534187,
+   "dur": 5.078542
+  },
+  {
+   "start": 9.912729,
+   "dur": 3.635396
+  }
+ ],
+ "credit": "VSCO-2 CE cello (CC0) chopped into syllables, formant-filtered, then band-limited with crackle (audio-src/creatures/make-creatures.py)"
+}
