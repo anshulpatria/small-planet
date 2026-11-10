@@ -3,6 +3,7 @@
    What it records:
      - a page view on load (Umami shows countries, visitors and the average visit time from this);
      - "leave" with { seconds } when the tab is hidden or closed, so the visit time covers the whole stay in this one-page game;
+     - "skip" / "enter" for the two intro buttons, to compare how visits start;
      - "download" with { file: wallpaper-phone | wallpaper-desktop | stl | 3mf } for each reward download.
    Off until UMAMI_ID is set to the website ID from cloud.umami.is (Settings → Websites → Add website). Also off on
    localhost, so dev play never counts. Every call is a no-op when off, and nothing here can throw into the game. */

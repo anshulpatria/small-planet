@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { outline } from "./toon.js?v=20261108-2312";
+import { outline } from "./toon.js?v=20261110-0921";
 
 /* The bench butterfly. A bench is only a seat; if Blip stays seated for SITFLY.delay (10 s) one butterfly
    flies in along a smooth curved path and lands on a rounded top corner of his head (headPerch), folds into slow flaps while he sits, and flutters off

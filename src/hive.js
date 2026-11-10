@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { fontsReady } from "./signs.js?v=20261108-2312";
-import { outline } from "./toon.js?v=20261108-2312";
+import { fontsReady } from "./signs.js?v=20261110-0921";
+import { outline } from "./toon.js?v=20261110-0921";
 
 /* "Walk the hive": a honeycomb of raised, spring-loaded hex pads on the ground by the AI Momentum to Value kiosk.
    Five of the 19 hexes are numbered honey buttons; stepping on one lights it for good and toasts that strategic move.

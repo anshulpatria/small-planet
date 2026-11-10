@@ -2,7 +2,7 @@
 // sfx.js stays the foley synthesiser and plugs into the one-shot bus defined here.
 //
 // API:
-//   import { createAmbient } from './audio.js?v=20261108-2312';
+//   import { createAmbient } from './audio.js?v=20261110-0921';
 //   const amb = createAmbient();
 //   amb.start()        call from a user gesture (click / keydown / pointerdown).
 //                      Creates or resumes the AudioContext synchronously inside the gesture, fades in over ~4 s.
@@ -74,7 +74,7 @@
 // Muted decision: if the stored choice is muted, start() still creates/resumes the context but DEFERS all
 // fetching/decoding (sprite and bed) until the first unmute.
 
-import { PEAK_BUDGET, budgetGain, TAIL_WEIGHT, FRESH_S } from './sfx.js?v=20261108-2312';
+import { PEAK_BUDGET, budgetGain, TAIL_WEIGHT, FRESH_S } from './sfx.js?v=20261110-0921';
 const KEY = 'archipelago.audio.muted';
 const LEVEL = 1.0;          // master level; masters are pre-leveled offline, so left at unity
 const DUCK = 0.355;         // -9 dB

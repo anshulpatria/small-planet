@@ -1,6 +1,6 @@
-import { fontsReady } from "./signs.js?v=20261108-2312";
-import { PROJECTS } from "./projects.js?v=20261108-2312";
-import { track } from "./track.js?v=20261108-2312";
+import { fontsReady } from "./signs.js?v=20261110-0921";
+import { PROJECTS } from "./projects.js?v=20261110-0921";
+import { track } from "./track.js?v=20261110-0921";
 
 /* R7 T8: takeaways.
    - Wallpapers (phone + desktop): unlocked by finding every butterfly. The user's own art, served as static files (takeShot below).

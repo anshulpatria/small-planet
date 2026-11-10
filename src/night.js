@@ -19,7 +19,7 @@ export function installNight({ scene, sky, ui, camera, spots = [], bodies = {}, 
     if (k <= 0.0001) { k = 0; sky.setSun({ elevation: DAY_ELEV }); return; }
     sky.setSun({ elevation: DAY_ELEV + (NIGHT_ELEV - DAY_ELEV) * k });
   };
-  import("./nightsky.js?v=20261108-2312").then(m => m.installFireflies({ scene, bodies, getK: () => k }));   // R7: fireflies (night only; lazy so first paint is untouched)
+  import("./nightsky.js?v=20261110-0921").then(m => m.installFireflies({ scene, bodies, getK: () => k }));   // R7: fireflies (night only; lazy so first paint is untouched)
   const ease = x => x * x * (3 - 2 * x);
   let last = 0;
   const tick = now => {

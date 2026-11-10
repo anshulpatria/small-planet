@@ -1,6 +1,6 @@
 import * as THREE from "three";
-import { Pinscreen } from "../pinscreen.js?v=20261108-2312";
-import { PadInput, PadReticle, padConnected } from "./padcursor.js?v=20261108-2312";
+import { Pinscreen } from "../pinscreen.js?v=20261110-0921";
+import { PadInput, PadReticle, padConnected } from "./padcursor.js?v=20261110-0921";
 
 /* PIN ART SANCTUARY: a walk-up version of Pin Art 3D (anshulpatria.github.io/3D-pin-art).
    The pinscreen always stands with the cowboy cat pressed into it, in graded relief (the

@@ -1,7 +1,7 @@
 /* Gravity Pong - "Curve a shot into the blue ring".
    Pure logic (stepBall, simulateShot, solveShot, randomWells) is exported for Node tests. */
 import * as THREE from "three";
-import { PadInput, padConnected } from "./padcursor.js?v=20261108-2312";
+import { PadInput, padConnected } from "./padcursor.js?v=20261110-0921";
 
 /* ------------------------------------------------------------------ logic */
 export const COURT = { minX: -3.3, maxX: 3.3, minZ: -7.4, maxZ: 1.5, y: 0.5 };

@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { toonify, outline, inkU } from "./toon.js?v=20261108-2312";
+import { toonify, outline, inkU } from "./toon.js?v=20261110-0921";
 
 /* The world map as a board game: a two-faced coin. The top face is the northern hemisphere and the
    back face the southern (north = above the planet's equator, world +y, the old map's split), each

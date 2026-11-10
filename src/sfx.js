@@ -1,8 +1,8 @@
 // sfx.js — foley synthesiser + compatibility layer of the unified sound system (audio.js is the home).
 //
 // API:
-//   import { createAmbient } from './audio.js?v=20261108-2312';
-//   import { createSfx } from './sfx.js?v=20261108-2312';
+//   import { createAmbient } from './audio.js?v=20261110-0921';
+//   import { createSfx } from './sfx.js?v=20261110-0921';
 //   const amb = createAmbient();
 //   const sfx = createSfx(amb);
 //   sfx.play(name, opts)   name: one of SFX_NAMES (below). opts (all optional):
